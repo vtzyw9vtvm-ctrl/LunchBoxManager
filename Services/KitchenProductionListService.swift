@@ -13,6 +13,12 @@ struct KitchenProductionListService {
         "Bottled Water - 600ml"
     ]
 
+    private let reportDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE d MMM yyyy"
+        return formatter
+    }()
+
     func makeReports(from orders: [LunchOrder], date: Date = Date()) -> [KitchenProductionListReport] {
         Dictionary(grouping: orders, by: { displaySchoolName($0.school.name) })
             .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
@@ -34,6 +40,7 @@ struct KitchenProductionListService {
 
         renderer.beginPage()
         drawPageHeader(schoolName: schoolName, date: date, statistics: statistics, renderer: renderer)
+        drawTableHeader(renderer: renderer)
 
         for section in sections {
             draw(section, renderer: renderer, schoolName: schoolName, date: date, statistics: statistics)
@@ -55,6 +62,7 @@ struct KitchenProductionListService {
                     displayNameByItem[itemKey] = itemName
                     rowsByItem[itemKey, default: []].append(
                         ProductionRow(
+                            orderNumber: order.orderNumber,
                             studentName: displayStudentName(studentOrder.student.fullName),
                             className: displayClassName(studentOrder.schoolClass?.name ?? ""),
                             quantity: item.quantity,
@@ -85,30 +93,27 @@ struct KitchenProductionListService {
         date: Date,
         statistics: ProductionStatistics
     ) {
-        let headingHeight: CGFloat = 28
-        let tableHeaderHeight: CGFloat = 18
+        let headingHeight: CGFloat = 21
         let minimumRowsWithHeading = min(section.rows.count, 3)
-        let minimumSectionHeight = headingHeight + tableHeaderHeight + CGFloat(minimumRowsWithHeading) * ProductionRow.minimumHeight
+        let minimumSectionHeight = headingHeight + CGFloat(minimumRowsWithHeading) * ProductionRow.minimumHeight
 
         if renderer.y - minimumSectionHeight < renderer.contentRect.minY {
             beginContinuationPage(renderer: renderer, schoolName: schoolName, date: date, statistics: statistics)
         }
 
         drawSectionHeading(section, renderer: renderer)
-        drawTableHeader(renderer: renderer)
 
         for row in section.rows {
             let rowHeight = height(for: row, renderer: renderer)
             if renderer.y - rowHeight < renderer.contentRect.minY {
                 beginContinuationPage(renderer: renderer, schoolName: schoolName, date: date, statistics: statistics)
                 drawSectionHeading(section, renderer: renderer, isContinuation: true)
-                drawTableHeader(renderer: renderer)
             }
 
             draw(row, height: rowHeight, renderer: renderer)
         }
 
-        renderer.moveDown(8)
+        renderer.moveDown(4)
     }
 
     private func beginContinuationPage(
@@ -139,7 +144,7 @@ struct KitchenProductionListService {
         renderer.moveDown(4)
         renderer.setY(
             renderer.drawText(
-                date.formatted(date: .abbreviated, time: .omitted),
+                reportDateFormatter.string(from: date),
                 font: .systemFont(ofSize: 11),
                 color: .secondaryLabelColor,
                 rect: CGRect(x: contentRect.minX, y: renderer.y - 16, width: contentRect.width, height: 16)
@@ -155,7 +160,7 @@ struct KitchenProductionListService {
         )
         renderer.moveDown(8)
         renderer.drawDivider(y: renderer.y)
-        renderer.moveDown(18)
+        renderer.moveDown(10)
     }
 
     private func drawSectionHeading(
@@ -164,62 +169,82 @@ struct KitchenProductionListService {
         isContinuation: Bool = false
     ) {
         let contentRect = renderer.contentRect
-        let rect = CGRect(x: contentRect.minX, y: renderer.y - 24, width: contentRect.width, height: 24)
+        let rect = CGRect(x: contentRect.minX, y: renderer.y - 18, width: contentRect.width, height: 18)
         NSColor.controlBackgroundColor.setFill()
         rect.fill()
 
-        let title = "\(section.itemName.uppercased()) (\(section.totalQuantity))" + (isContinuation ? " CONTINUED" : "")
+        let checkboxFont = NSFont.systemFont(ofSize: 17)
+        let headingFont = NSFont.boldSystemFont(ofSize: 13)
+        let title = "\(section.itemName.uppercased()) — \(section.totalQuantity)" + (isContinuation ? " CONTINUED" : "")
+        renderer.drawText(
+            "☐",
+            font: checkboxFont,
+            rect: CGRect(x: rect.minX, y: rect.minY, width: 18, height: rect.height)
+        )
         renderer.drawText(
             title,
-            font: .boldSystemFont(ofSize: 15),
-            rect: rect.insetBy(dx: 8, dy: 3)
+            font: headingFont,
+            rect: CGRect(x: rect.minX + 20, y: rect.minY + 2, width: rect.width - 28, height: rect.height - 4)
         )
-        renderer.moveDown(28)
+        renderer.moveDown(20)
     }
 
     private func drawTableHeader(renderer: ReportPDFRenderer) {
         let columns = tableColumns(in: renderer.contentRect)
-        let y = renderer.y - 14
-        let font = NSFont.boldSystemFont(ofSize: 9.5)
-        renderer.drawText("Student Name", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.student.minX, y: y, width: columns.student.width, height: 14))
-        renderer.drawText("Class", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.className.minX, y: y, width: columns.className.width, height: 14))
-        renderer.drawText("Qty", font: font, color: .secondaryLabelColor, alignment: .center, rect: CGRect(x: columns.quantity.minX, y: y, width: columns.quantity.width, height: 14))
-        renderer.drawText("Variations / Special Instructions", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.instructions.minX, y: y, width: columns.instructions.width, height: 14))
-        renderer.moveDown(16)
+        let y = renderer.y - 12
+        let font = NSFont.boldSystemFont(ofSize: 8.5)
+        renderer.drawText("Order #", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: 12))
+        renderer.drawText("Student Name", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.student.minX, y: y, width: columns.student.width, height: 12))
+        renderer.drawText("Class", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.className.minX, y: y, width: columns.className.width, height: 12))
+        renderer.drawText("Qty", font: font, color: .secondaryLabelColor, alignment: .center, rect: CGRect(x: columns.quantity.minX, y: y, width: columns.quantity.width, height: 12))
+        renderer.drawText("Extras", font: font, color: .secondaryLabelColor, rect: CGRect(x: columns.instructions.minX, y: y, width: columns.instructions.width, height: 12))
+        renderer.moveDown(14)
         renderer.drawDivider(y: renderer.y)
-        renderer.moveDown(4)
+        renderer.moveDown(6)
     }
 
     private func draw(_ row: ProductionRow, height: CGFloat, renderer: ReportPDFRenderer) {
         let columns = tableColumns(in: renderer.contentRect)
-        let y = renderer.y - height + 3
-        let textHeight = height - 4
-        let font = NSFont.systemFont(ofSize: 9.5)
-        let quantityFont = NSFont.boldSystemFont(ofSize: 10)
+        let y = renderer.y - height + 1.5
+        let textHeight = height - 2.5
+        let font = NSFont.systemFont(ofSize: 7.5)
+        let quantityFont = NSFont.boldSystemFont(ofSize: 8)
+        let orderFont = NSFont.boldSystemFont(ofSize: 7.5)
 
+        renderer.drawText(row.orderNumber, font: orderFont, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: textHeight))
         renderer.drawText(row.studentName, font: font, rect: CGRect(x: columns.student.minX, y: y, width: columns.student.width, height: textHeight))
         renderer.drawText(row.className, font: font, rect: CGRect(x: columns.className.minX, y: y, width: columns.className.width, height: textHeight))
         renderer.drawText("\(row.quantity)", font: quantityFont, alignment: .center, rect: CGRect(x: columns.quantity.minX, y: y, width: columns.quantity.width, height: textHeight))
-        renderer.drawText(row.instructions, font: font, rect: CGRect(x: columns.instructions.minX, y: y, width: columns.instructions.width, height: textHeight))
+        drawWrappedText(
+            row.instructions,
+            font: font,
+            rect: CGRect(x: columns.instructions.minX, y: y, width: columns.instructions.width, height: textHeight)
+        )
+        renderer.drawDivider(y: renderer.y - height, color: .separatorColor.withAlphaComponent(0.45))
         renderer.moveDown(height)
     }
 
     private func height(for row: ProductionRow, renderer: ReportPDFRenderer) -> CGFloat {
         let columns = tableColumns(in: renderer.contentRect)
-        let instructionHeight = measuredHeight(row.instructions, font: .systemFont(ofSize: 9.5), width: columns.instructions.width)
-        return max(ProductionRow.minimumHeight, ceil(instructionHeight) + 7)
+        let instructionHeight = measuredHeight(row.instructions, font: .systemFont(ofSize: 7.5), width: columns.instructions.width)
+        return max(ProductionRow.minimumHeight, ceil(instructionHeight) + 3.5)
     }
 
     private func tableColumns(in contentRect: CGRect) -> ProductionTableColumns {
-        let studentWidth: CGFloat = 150
-        let classWidth: CGFloat = 70
-        let quantityWidth: CGFloat = 38
-        let gap: CGFloat = 10
-        let instructionsX = contentRect.minX + studentWidth + classWidth + quantityWidth + gap * 3
+        let orderWidth: CGFloat = 48
+        let studentWidth: CGFloat = 138
+        let classWidth: CGFloat = 62
+        let quantityWidth: CGFloat = 30
+        let gap: CGFloat = 8
+        let studentX = contentRect.minX + orderWidth + gap
+        let classX = studentX + studentWidth + gap
+        let quantityX = classX + classWidth + gap
+        let instructionsX = quantityX + quantityWidth + gap
         return ProductionTableColumns(
-            student: CGRect(x: contentRect.minX, y: 0, width: studentWidth, height: 0),
-            className: CGRect(x: contentRect.minX + studentWidth + gap, y: 0, width: classWidth, height: 0),
-            quantity: CGRect(x: contentRect.minX + studentWidth + classWidth + gap * 2, y: 0, width: quantityWidth, height: 0),
+            orderNumber: CGRect(x: contentRect.minX, y: 0, width: orderWidth, height: 0),
+            student: CGRect(x: studentX, y: 0, width: studentWidth, height: 0),
+            className: CGRect(x: classX, y: 0, width: classWidth, height: 0),
+            quantity: CGRect(x: quantityX, y: 0, width: quantityWidth, height: 0),
             instructions: CGRect(x: instructionsX, y: 0, width: contentRect.maxX - instructionsX, height: 0)
         )
     }
@@ -237,6 +262,18 @@ struct KitchenProductionListService {
         return rect.height
     }
 
+    private func drawWrappedText(_ text: String, font: NSFont, color: NSColor = .labelColor, rect: CGRect) {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineBreakMode = .byWordWrapping
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color,
+            .paragraphStyle: paragraphStyle
+        ]
+        NSString(string: text).draw(in: rect, withAttributes: attributes)
+    }
+
     private func productionItemName(for item: MenuItem) -> String {
         let normalizedName = item.name.normalizedProductionText
         if let drinkName = drinkNames.first(where: { normalizedName.contains($0.normalizedProductionText) }) {
@@ -248,14 +285,30 @@ struct KitchenProductionListService {
     }
 
     private func productionInstructions(for item: MenuItem) -> String {
-        var details = item.variants.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        var details = item.variants.compactMap(cleanExtrasText)
         if let notes = item.notes?.trimmingCharacters(in: .whitespacesAndNewlines), !notes.isEmpty {
-            details.append(notes)
+            if let cleanedNotes = cleanExtrasText(notes) {
+                details.append(cleanedNotes)
+            }
         }
 
         return details
             .filter { !$0.isEmpty }
             .joined(separator: "; ")
+    }
+
+    private func cleanExtrasText(_ text: String) -> String? {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else { return nil }
+
+        let cleanedText = trimmedText.replacingOccurrences(
+            of: #"^special instructions:?\s*"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return cleanedText.isEmpty ? nil : cleanedText
     }
 
     private func displaySchoolName(_ schoolName: String) -> String {
@@ -286,8 +339,9 @@ private struct ProductionSection {
 }
 
 private struct ProductionRow {
-    static let minimumHeight: CGFloat = 17
+    static let minimumHeight: CGFloat = 12
 
+    var orderNumber: String
     var studentName: String
     var className: String
     var quantity: Int
@@ -295,6 +349,7 @@ private struct ProductionRow {
 }
 
 private struct ProductionTableColumns {
+    var orderNumber: CGRect
     var student: CGRect
     var className: CGRect
     var quantity: CGRect

@@ -4,6 +4,21 @@ import PDFKit
 
 /// Generates per-school class packing list PDFs with one A5 page per class.
 struct ClassPackingListService {
+    private let coldItemConfiguration: ColdLabelItemConfiguration
+
+    private let drinkNames = [
+        "Boost Juice",
+        "Iced Tea - 600ml",
+        "Nippy's Milk - 375ml",
+        "Presha Fruit Juice",
+        "Just Juice Box - 200ml",
+        "Bottled Water - 600ml"
+    ]
+
+    init(coldItemConfiguration: ColdLabelItemConfiguration? = nil) {
+        self.coldItemConfiguration = coldItemConfiguration ?? .load()
+    }
+
     func makeReports(from orders: [LunchOrder], date: Date = Date()) -> [ClassPackingListReport] {
         Dictionary(grouping: orders, by: { displaySchoolName($0.school.name) })
             .sorted { $0.key.localizedStandardCompare($1.key) == .orderedAscending }
@@ -46,7 +61,8 @@ struct ClassPackingListService {
                             ClassPackingItem(
                                 name: displayItemName(item.name),
                                 quantity: item.quantity,
-                                extras: extras(for: item)
+                                extras: extras(for: item),
+                                isColdSummaryItem: isColdSummaryItem(item)
                             )
                         }
                     )
@@ -75,6 +91,7 @@ struct ClassPackingListService {
             draw(studentOrder, renderer: renderer)
         }
 
+        drawColdItemsSummary(page.coldItems, renderer: renderer)
         renderer.endPage()
     }
 
@@ -149,6 +166,40 @@ struct ClassPackingListService {
         renderer.moveDown(3)
     }
 
+    private func drawColdItemsSummary(_ items: [ClassPackingItem], renderer: ReportPDFRenderer) {
+        let summaryItems = groupedColdSummaryItems(items)
+        guard !summaryItems.isEmpty else { return }
+
+        let headingFont = NSFont.boldSystemFont(ofSize: 13.5)
+        let itemFont = NSFont.systemFont(ofSize: 11.5)
+        let lineHeight: CGFloat = 15
+        let headingHeight: CGFloat = 17
+        let gapAbove: CGFloat = 7
+        let headingGap: CGFloat = 2
+        let requiredHeight = gapAbove + headingHeight + headingGap + CGFloat(summaryItems.count) * lineHeight
+
+        guard renderer.y - requiredHeight >= renderer.contentRect.minY else { return }
+
+        renderer.setY(renderer.contentRect.minY + requiredHeight)
+        renderer.moveDown(gapAbove)
+        renderer.drawText(
+            "COLD ITEMS",
+            font: headingFont,
+            rect: CGRect(x: renderer.contentRect.minX, y: renderer.y - headingHeight, width: renderer.contentRect.width, height: headingHeight)
+        )
+        renderer.moveDown(headingHeight + headingGap)
+
+        for item in summaryItems {
+            let line = coldSummaryLine(for: item)
+            renderer.drawText(
+                line,
+                font: itemFont,
+                rect: CGRect(x: renderer.contentRect.minX, y: renderer.y - lineHeight, width: renderer.contentRect.width, height: lineHeight)
+            )
+            renderer.moveDown(lineHeight)
+        }
+    }
+
     private func draw(
         _ item: ClassPackingItem,
         studentOrder: ClassStudentOrder,
@@ -208,6 +259,55 @@ struct ClassPackingListService {
         }
 
         return details.joined(separator: "; ")
+    }
+
+    private func coldSummaryLine(for item: ClassPackingItem) -> String {
+        let baseLine = "\(item.quantity) x \(item.name)"
+        return item.extras.isEmpty ? baseLine : "\(baseLine) — \(item.extras)"
+    }
+
+    private func groupedColdSummaryItems(_ items: [ClassPackingItem]) -> [ClassPackingItem] {
+        Dictionary(grouping: items, by: coldSummaryKey)
+            .map { _, items in
+                let firstItem = items[0]
+                return ClassPackingItem(
+                    name: firstItem.name,
+                    quantity: items.reduce(0) { $0 + $1.quantity },
+                    extras: firstItem.extras,
+                    isColdSummaryItem: true
+                )
+            }
+            .sorted { first, second in
+                first.name.localizedStandardCompare(second.name) == .orderedAscending
+                    || (
+                        first.name.localizedStandardCompare(second.name) == .orderedSame
+                            && first.extras.localizedStandardCompare(second.extras) == .orderedAscending
+                    )
+            }
+    }
+
+    private func coldSummaryKey(for item: ClassPackingItem) -> String {
+        [
+            item.name.normalizedClassPackingItemName,
+            item.extras.normalizedClassPackingItemName
+        ].joined(separator: "|")
+    }
+
+    private func isColdSummaryItem(_ item: MenuItem) -> Bool {
+        isDrink(item) || isColdFood(item)
+    }
+
+    private func isDrink(_ item: MenuItem) -> Bool {
+        let normalizedName = item.name.normalizedClassPackingItemName
+        return drinkNames.contains { normalizedName.contains($0.normalizedClassPackingItemName) }
+    }
+
+    private func isColdFood(_ item: MenuItem) -> Bool {
+        if item.isHot { return false }
+        if item.isCold { return true }
+
+        let normalizedName = item.name.normalizedClassPackingItemName
+        return coldItemConfiguration.normalizedItemNames.contains { normalizedName.contains($0) }
     }
 
     private func cleanExtrasText(_ text: String) -> String? {
@@ -309,6 +409,12 @@ private struct ClassPackingPage {
     var totalStudents: Int {
         studentOrders.count
     }
+
+    var coldItems: [ClassPackingItem] {
+        studentOrders.flatMap { studentOrder in
+            studentOrder.items.filter(\.isColdSummaryItem)
+        }
+    }
 }
 
 private struct ClassStudentOrder {
@@ -322,6 +428,7 @@ private struct ClassPackingItem {
     var name: String
     var quantity: Int
     var extras: String
+    var isColdSummaryItem: Bool
 }
 
 private struct ClassPackingColumns {
@@ -334,6 +441,12 @@ private struct ClassPackingColumns {
 
 private extension String {
     var normalizedClassKey: String {
+        trimmingCharacters(in: .whitespacesAndNewlines)
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .lowercased()
+    }
+
+    var normalizedClassPackingItemName: String {
         trimmingCharacters(in: .whitespacesAndNewlines)
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .lowercased()

@@ -1,24 +1,33 @@
 import Foundation
 
-/// Represents an item available on the school lunch menu.
+/// Represents a food or drink item included in a lunch order.
 struct MenuItem: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     var name: String
-    var description: String?
-    var price: Decimal
-    var isAvailable: Bool
+    var category: String
+    var variants: [String]
+    var quantity: Int
+    var notes: String?
+    var isHot: Bool
+    var isCold: Bool
 
     init(
         id: UUID = UUID(),
         name: String,
-        description: String? = nil,
-        price: Decimal,
-        isAvailable: Bool = true
+        category: String,
+        variants: [String] = [],
+        quantity: Int = 1,
+        notes: String? = nil,
+        isHot: Bool = false,
+        isCold: Bool = false
     ) {
         self.id = id
         self.name = name
-        self.description = description
-        self.price = price
-        self.isAvailable = isAvailable
+        self.category = category
+        self.variants = variants
+        self.quantity = quantity
+        self.notes = notes
+        self.isHot = isHot
+        self.isCold = isCold
     }
 }

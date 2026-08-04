@@ -1,7 +1,7 @@
 import PDFKit
 import SwiftUI
 
-/// Generates operational PDF reports for kitchen preparation.
+/// Generates operational PDF reports for kitchen production.
 struct ReportsView: View {
     @State private var viewModel = ReportsViewModel()
     @State private var previewReports: [ReportPreviewState] = []
@@ -34,7 +34,7 @@ struct ReportsView: View {
             }
         }
         .alert(
-            "No Reports Generated",
+            viewModel.messageTitle,
             isPresented: Binding(
                 get: { viewModel.message != nil },
                 set: { isPresented in
@@ -48,7 +48,7 @@ struct ReportsView: View {
                 viewModel.dismissMessage()
             }
         } message: {
-            Text(viewModel.message ?? "Import orders before generating kitchen run sheets.")
+            Text(viewModel.message ?? "Import orders before generating kitchen production lists.")
         }
     }
 
@@ -56,25 +56,46 @@ struct ReportsView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Reports")
                 .font(.largeTitle.weight(.semibold))
-            Text("Generate kitchen run sheets grouped by school for daily preparation.")
+            Text("Generate kitchen production, pasta preparation and class packing reports.")
                 .foregroundStyle(.secondary)
         }
     }
 
     private var actions: some View {
-        Button {
-            viewModel.generateKitchenRunSheets(from: orders)
-            previewReports = viewModel.reports.map { report in
-                ReportPreviewState(
-                    title: "Kitchen Run Sheet - \(report.schoolName)",
-                    document: report.document
-                )
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                viewModel.generateKitchenProductionLists(from: orders)
+                previewReports = viewModel.productionListReports.map { report in
+                    ReportPreviewState(
+                        title: "\(report.schoolName) Kitchen Production.pdf",
+                        document: report.document
+                    )
+                } + viewModel.pastaPreparationReports.map { report in
+                    ReportPreviewState(
+                        title: "\(report.reportName).pdf",
+                        document: report.document
+                    )
+                }
+            } label: {
+                Label("Generate Kitchen Production Lists", systemImage: "doc.text")
             }
-        } label: {
-            Label("Generate Kitchen Run Sheets", systemImage: "doc.text")
+            .buttonStyle(.borderedProminent)
+            .disabled(orders.isEmpty)
+
+            Button {
+                viewModel.generateClassPackingLists(from: orders)
+                previewReports = viewModel.classPackingListReports.map { report in
+                    ReportPreviewState(
+                        title: "Class Packing List - \(report.schoolName)",
+                        document: report.document
+                    )
+                }
+            } label: {
+                Label("Generate Class Packing Lists", systemImage: "doc.on.doc")
+            }
+            .buttonStyle(.bordered)
+            .disabled(orders.isEmpty)
         }
-        .buttonStyle(.borderedProminent)
-        .disabled(orders.isEmpty)
     }
 
     private var reportSummary: some View {

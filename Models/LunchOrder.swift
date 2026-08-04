@@ -1,24 +1,27 @@
 import Foundation
 
-/// Represents a lunch order placed for a student on a specific date.
+/// Represents a Wix lunch order that may include meals for multiple students.
 struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
-    var studentID: UUID
+    var orderNumber: String
+    var school: School
+    var studentOrders: [StudentOrder]
     var orderDate: Date
-    var menuItemIDs: [UUID]
     var notes: String?
 
     init(
         id: UUID = UUID(),
-        studentID: UUID,
+        orderNumber: String,
+        school: School,
+        studentOrders: [StudentOrder],
         orderDate: Date,
-        menuItemIDs: [UUID],
         notes: String? = nil
     ) {
         self.id = id
-        self.studentID = studentID
+        self.orderNumber = orderNumber
+        self.school = school
+        self.studentOrders = studentOrders
         self.orderDate = orderDate
-        self.menuItemIDs = menuItemIDs
         self.notes = notes
     }
 }

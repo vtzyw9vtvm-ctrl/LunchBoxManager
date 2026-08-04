@@ -100,7 +100,7 @@ struct LabelsView: View {
     }
 }
 
-private struct LabelsPreviewWindowPresenter: NSViewRepresentable {
+struct LabelsPreviewWindowPresenter: NSViewRepresentable {
     @Binding var isPresented: Bool
     var title: String
     var document: PDFDocument?
@@ -167,6 +167,8 @@ private struct LabelsPreviewWindowPresenter: NSViewRepresentable {
 }
 
 private final class LabelsPDFWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate {
+    private static let initialWindowFrame = NSRect(x: 0, y: 0, width: 1000, height: 700)
+
     private enum ToolbarID {
         static let toolbar = NSToolbar.Identifier("LabelsPDFPreviewToolbar")
         static let close = NSToolbarItem.Identifier("LabelsPDFPreviewClose")
@@ -186,7 +188,7 @@ private final class LabelsPDFWindowController: NSWindowController, NSWindowDeleg
         self.onClose = onClose
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 980, height: 720),
+            contentRect: Self.initialWindowFrame,
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -194,11 +196,13 @@ private final class LabelsPDFWindowController: NSWindowController, NSWindowDeleg
         window.title = title
         window.contentViewController = pdfViewController
         window.isReleasedWhenClosed = false
+        window.minSize = Self.initialWindowFrame.size
 
         super.init(window: window)
 
         window.delegate = self
         window.toolbar = makeToolbar()
+        window.setFrame(Self.initialWindowFrame, display: false)
         window.center()
     }
 
@@ -212,6 +216,12 @@ private final class LabelsPDFWindowController: NSWindowController, NSWindowDeleg
         if let document {
             pdfViewController.update(document: document)
         }
+    }
+
+    override func showWindow(_ sender: Any?) {
+        window?.setFrame(Self.initialWindowFrame, display: false)
+        window?.center()
+        super.showWindow(sender)
     }
 
     func windowWillClose(_ notification: Notification) {
@@ -232,7 +242,6 @@ private final class LabelsPDFWindowController: NSWindowController, NSWindowDeleg
             ToolbarID.close,
             ToolbarID.save,
             ToolbarID.print,
-            .separator,
             ToolbarID.zoomIn,
             ToolbarID.zoomOut,
             ToolbarID.actualSize,
@@ -246,7 +255,6 @@ private final class LabelsPDFWindowController: NSWindowController, NSWindowDeleg
             ToolbarID.close,
             ToolbarID.save,
             ToolbarID.print,
-            .separator,
             ToolbarID.zoomIn,
             ToolbarID.zoomOut,
             ToolbarID.actualSize,
@@ -306,41 +314,14 @@ private final class LabelsPDFWindowController: NSWindowController, NSWindowDeleg
         panel.title = "Save Labels PDF"
         panel.prompt = "Save"
 
-        guard let window else { return }
-        panel.beginSheetModal(for: window) { response in
-            guard response == .OK, let url = panel.url else { return }
-            document.write(to: url)
-        }
+        let response = panel.runModal()
+        guard response == .OK, let url = panel.url else { return }
+        document.write(to: url)
     }
 
     @objc private func printPDF(_ sender: Any?) {
-        guard let document = pdfViewController.document else { return }
-
-        let printInfo = NSPrintInfo.shared.copy() as? NSPrintInfo ?? NSPrintInfo()
-        printInfo.paperSize = LabelGenerationService.labelSize
-        printInfo.topMargin = 0
-        printInfo.bottomMargin = 0
-        printInfo.leftMargin = 0
-        printInfo.rightMargin = 0
-        printInfo.horizontalPagination = .fit
-        printInfo.verticalPagination = .fit
-        printInfo.isHorizontallyCentered = false
-        printInfo.isVerticallyCentered = false
-
-        guard let operation = document.printOperation(
-            for: printInfo,
-            scalingMode: .pageScaleNone,
-            autoRotate: false
-        ) else { return }
-
-        operation.showsPrintPanel = true
-        operation.showsProgressPanel = true
-
-        if let window {
-            operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
-        } else {
-            operation.run()
-        }
+        Swift.print("Print button pressed")
+        pdfViewController.printPDF()
     }
 
     @objc private func zoomIn(_ sender: Any?) {
@@ -404,6 +385,7 @@ private final class LabelsPDFViewController: NSViewController {
         thumbnailScrollView.widthAnchor.constraint(equalToConstant: 120).isActive = true
 
         view = splitView
+        scheduleInitialFitWidth()
     }
 
     func update(document: PDFDocument) {
@@ -411,6 +393,7 @@ private final class LabelsPDFViewController: NSViewController {
             pdfView.document = document
             thumbnailView.pdfView = pdfView
             pdfView.autoScales = true
+            scheduleInitialFitWidth()
         }
     }
 
@@ -430,15 +413,74 @@ private final class LabelsPDFViewController: NSViewController {
     }
 
     func fitWidth() {
-        guard let page = pdfView.currentPage ?? pdfView.document?.page(at: 0) else { return }
+        pdfView.autoScales = true
+    }
 
-        let pageWidth = page.bounds(for: pdfView.displayBox).width
-        guard pageWidth > 0 else { return }
+    func printPDF() {
 
-        let availableWidth = max(pdfView.bounds.width - 32, 1)
-        let scale = availableWidth / pageWidth
-        pdfView.autoScales = false
-        pdfView.scaleFactor = min(max(scale, pdfView.minScaleFactor), pdfView.maxScaleFactor)
+        guard let document = pdfView.document else { return }
+
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+
+        guard let operation = document.printOperation(
+            for: printInfo,
+            scalingMode: .pageScaleNone,
+            autoRotate: false
+        ) else {
+            return
+        }
+
+        operation.showsPrintPanel = true
+        operation.showsProgressPanel = true
+
+        operation.run()
+    }
+
+    private func scheduleInitialFitWidth() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            pdfView.layoutDocumentView()
+            pdfView.autoScales = true
+            resetToFirstPageTopLeft()
+            printPDFDiagnostics()
+        }
+    }
+
+    private func resetToFirstPageTopLeft() {
+        guard let page = pdfView.document?.page(at: 0) else { return }
+
+        pdfView.go(to: page)
+        pdfView.layoutDocumentView()
+
+        guard let documentView = pdfView.documentView,
+              let clipView = documentView.enclosingScrollView?.contentView else {
+            return
+        }
+
+        let topY = documentView.isFlipped
+            ? documentView.bounds.minY
+            : max(documentView.bounds.minY, documentView.bounds.maxY - clipView.bounds.height)
+        clipView.scroll(to: NSPoint(x: documentView.bounds.minX, y: topY))
+        documentView.enclosingScrollView?.reflectScrolledClipView(clipView)
+    }
+
+    private func printPDFDiagnostics() {
+        guard let document = pdfView.document else {
+            Swift.print("PDF preview pageCount: 0")
+            return
+        }
+
+        Swift.print("PDF preview pageCount: \(document.pageCount)")
+
+        guard let page = document.page(at: 0) else { return }
+        let pageBounds = page.bounds(for: pdfView.displayBox)
+        let mediaBox = page.bounds(for: .mediaBox)
+
+        Swift.print("PDF preview page bounds: \(pageBounds)")
+        Swift.print("PDF preview mediaBox size: \(mediaBox.size)")
+        Swift.print("PDF preview current scaleFactor: \(pdfView.scaleFactor)")
+        Swift.print("PDF preview minScaleFactor: \(pdfView.minScaleFactor)")
+        Swift.print("PDF preview maxScaleFactor: \(pdfView.maxScaleFactor)")
     }
 }
 

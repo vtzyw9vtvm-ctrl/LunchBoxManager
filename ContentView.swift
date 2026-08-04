@@ -12,6 +12,7 @@ struct ContentView: View {
     private let labelGenerationService = LabelGenerationService()
     private let kitchenProductionListService = KitchenProductionListService()
     private let classPackingListService = ClassPackingListService()
+    private let pastaPreparationReportService = PastaPreparationReportService()
 
     var body: some View {
         NavigationSplitView {
@@ -19,12 +20,12 @@ struct ContentView: View {
                 Label(screen.title, systemImage: screen.systemImage)
                     .tag(screen)
             }
-            .navigationTitle("School Lunch Manager")
+            .navigationTitle("LunchBox Manager")
         } detail: {
             detailView
                 .background(AppTheme.appBackground)
         }
-        .navigationTitle("School Lunch Manager")
+        .navigationTitle("LunchBpx Manager")
         .tint(AppTheme.primary)
         .frame(minWidth: 1120, minHeight: 720)
         .background(previewPresenters)
@@ -91,6 +92,8 @@ struct ContentView: View {
             ImportCSVView(viewModel: importViewModel, importCSV: importCSV)
         case .labels:
             LabelsView(orders: importViewModel.importedOrders)
+        case .lunchMenu:
+            LunchMenuView()
         case .kitchenProduction:
             SingleReportView(
                 title: "Kitchen Production",
@@ -136,7 +139,14 @@ struct ContentView: View {
     }
 
     private var kitchenReportCount: Int {
-        Set(importViewModel.importedOrders.map(\.school.id)).count
+
+        let schoolCount = Set(importViewModel.importedOrders.map(\.school.id)).count
+
+        let pastaReports = pastaPreparationReportService.makeReports(
+            from: importViewModel.importedOrders
+        )
+
+        return schoolCount + pastaReports.count
     }
 
     private var classPackingReportCount: Int {
@@ -176,16 +186,41 @@ struct ContentView: View {
     }
 
     private func generateKitchenProductionLists() {
-        let reports = kitchenProductionListService.makeReports(from: importViewModel.importedOrders)
-        guard !reports.isEmpty else { return }
 
-        previewDocuments = reports.map { report in
-            AppPreviewDocument(
-                title: "Kitchen Production List - \(report.schoolName)",
-                document: report.document
-            )
+        let kitchenReports = kitchenProductionListService.makeReports(
+            from: importViewModel.importedOrders
+        )
+
+        let pastaReports = pastaPreparationReportService.makeReports(
+            from: importViewModel.importedOrders
+        )
+
+        guard !kitchenReports.isEmpty || !pastaReports.isEmpty else {
+            return
         }
-        showStatus(["Kitchen Production List created"])
+
+        previewDocuments =
+            kitchenReports.map {
+                AppPreviewDocument(
+                    title: "Kitchen Production List - \($0.schoolName)",
+                    document: $0.document
+                )
+            }
+            +
+            pastaReports.map {
+                AppPreviewDocument(
+                    title: $0.reportName,
+                    document: $0.document
+                )
+            }
+
+        var messages = ["Kitchen Production Lists created"]
+
+        if !pastaReports.isEmpty {
+            messages.append("Pasta Preparation Report created")
+        }
+
+        showStatus(messages)
     }
 
     private func generateClassPackingLists() {
@@ -261,6 +296,7 @@ private enum AppScreen: String, CaseIterable, Identifiable {
     case dashboard
     case importCSV
     case labels
+    case lunchMenu
     case kitchenProduction
     case classPacking
     case settings
@@ -276,6 +312,8 @@ private enum AppScreen: String, CaseIterable, Identifiable {
             "Import CSV"
         case .labels:
             "Labels"
+        case .lunchMenu:
+            "Lunch Menu"
         case .kitchenProduction:
             "Kitchen Production"
         case .classPacking:
@@ -295,6 +333,8 @@ private enum AppScreen: String, CaseIterable, Identifiable {
             "square.and.arrow.down"
         case .labels:
             "tag"
+        case .lunchMenu:
+            "fork.knife.circle"
         case .kitchenProduction:
             "fork.knife"
         case .classPacking:
@@ -329,12 +369,12 @@ private struct DashboardHomeView: View {
             .padding(32)
             .frame(maxWidth: 1180, alignment: .topLeading)
         }
-        .navigationTitle("School Lunch Manager")
+        .navigationTitle("LunchBox Manager")
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("School Lunch Manager")
+            Text("LunchBox Manager")
                 .font(.system(size: 36, weight: .semibold))
                 .foregroundStyle(AppTheme.charcoal)
             Text(AppDateFormatter.dashboardDate.string(from: Date()))

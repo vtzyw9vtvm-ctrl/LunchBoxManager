@@ -5,6 +5,7 @@ import PDFKit
 /// Shared A4 portrait PDF renderer for operational reports.
 final class ReportPDFRenderer {
     static let a4PortraitSize = CGSize(width: 595.2, height: 841.8)
+    static let a5PortraitSize = CGSize(width: 419.5, height: 595.2)
 
     let context: CGContext
     let pageRect: CGRect
@@ -12,11 +13,11 @@ final class ReportPDFRenderer {
     private let data: NSMutableData
     private(set) var y: CGFloat = 0
 
-    init?(margin: CGFloat = 36) {
+    init?(pageSize: CGSize = ReportPDFRenderer.a4PortraitSize, margin: CGFloat = 36) {
         data = NSMutableData()
         guard let consumer = CGDataConsumer(data: data) else { return nil }
 
-        var mediaBox = CGRect(origin: .zero, size: Self.a4PortraitSize)
+        var mediaBox = CGRect(origin: .zero, size: pageSize)
         guard let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else { return nil }
 
         self.context = context

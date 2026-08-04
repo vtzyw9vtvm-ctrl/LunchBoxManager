@@ -49,7 +49,7 @@ struct KitchenRunSheetService {
         let statistics = makeStatistics(orders: orders, classifiedItems: classifiedItems)
         let hotItems = groupedItems(classifiedItems.hot)
         let coldItems = groupedItems(classifiedItems.cold)
-        let drinkItems = groupedItems(classifiedItems.drinks)
+        let drinkItems = groupedDrinkItems(classifiedItems.drinks)
 
         context.beginPDFPage(nil)
         NSColor.white.setFill()
@@ -124,7 +124,7 @@ struct KitchenRunSheetService {
             y = drawSectionTitle(section.title, y: y, columnRect: columnRect)
 
             for item in section.items {
-                guard y - 18 >= minimumY else { return }
+                guard y - item.requiredHeight >= minimumY else { return }
                 y = drawRunSheetItem(item, y: y, columnRect: columnRect)
             }
 
@@ -139,12 +139,70 @@ struct KitchenRunSheetService {
     }
 
     private func drawRunSheetItem(_ item: RunSheetItem, y: CGFloat, columnRect: CGRect) -> CGFloat {
+        let checkboxText = "☐"
+        let quantityText = "\(item.quantity)"
+        let checkboxFont = NSFont.systemFont(ofSize: 11)
+        let quantityFont = NSFont.boldSystemFont(ofSize: 13)
+        let itemFont = NSFont.systemFont(ofSize: 11)
+        let checkboxWidth = measuredWidth(of: checkboxText, font: checkboxFont) + 6
+        let quantityWidth = measuredWidth(of: quantityText, font: quantityFont) + 8
+        let lineRect = CGRect(x: columnRect.minX, y: y - 16, width: columnRect.width, height: 16)
+
         drawText(
-            "☐ \(item.quantity) \(item.name)",
-            font: .systemFont(ofSize: 11),
-            rect: CGRect(x: columnRect.minX, y: y - 16, width: columnRect.width, height: 16)
+            checkboxText,
+            font: checkboxFont,
+            rect: CGRect(x: lineRect.minX, y: lineRect.minY, width: checkboxWidth, height: lineRect.height)
         )
-        return y - 18
+        drawText(
+            quantityText,
+            font: quantityFont,
+            rect: CGRect(x: lineRect.minX + checkboxWidth, y: lineRect.minY, width: quantityWidth, height: lineRect.height)
+        )
+        drawText(
+            item.name,
+            font: itemFont,
+            rect: CGRect(
+                x: lineRect.minX + checkboxWidth + quantityWidth,
+                y: lineRect.minY,
+                width: lineRect.width - checkboxWidth - quantityWidth,
+                height: lineRect.height
+            )
+        )
+
+        var nextY = y - 18
+        for variant in item.variants {
+            nextY = drawRunSheetVariant(variant, y: nextY, columnRect: columnRect)
+        }
+
+        return nextY
+    }
+
+    private func drawRunSheetVariant(_ variant: RunSheetVariant, y: CGFloat, columnRect: CGRect) -> CGFloat {
+        let quantityText = "\(variant.quantity)"
+        let quantityFont = NSFont.boldSystemFont(ofSize: 11)
+        let variantFont = NSFont.systemFont(ofSize: 10)
+        let indent: CGFloat = 24
+        let quantityWidth = measuredWidth(of: quantityText, font: quantityFont) + 8
+        let lineRect = CGRect(x: columnRect.minX + indent, y: y - 14, width: columnRect.width - indent, height: 14)
+
+        drawText(
+            quantityText,
+            font: quantityFont,
+            color: .secondaryLabelColor,
+            rect: CGRect(x: lineRect.minX, y: lineRect.minY, width: quantityWidth, height: lineRect.height)
+        )
+        drawText(
+            variant.name,
+            font: variantFont,
+            color: .secondaryLabelColor,
+            rect: CGRect(
+                x: lineRect.minX + quantityWidth,
+                y: lineRect.minY,
+                width: lineRect.width - quantityWidth,
+                height: lineRect.height
+            )
+        )
+        return y - 14
     }
 
     private func drawDivider(y: CGFloat, x: CGFloat, width: CGFloat) {
@@ -154,6 +212,10 @@ struct KitchenRunSheetService {
         path.move(to: CGPoint(x: x, y: y))
         path.line(to: CGPoint(x: x + width, y: y))
         path.stroke()
+    }
+
+    private func measuredWidth(of text: String, font: NSFont) -> CGFloat {
+        NSString(string: text).size(withAttributes: [.font: font]).width
     }
 
     private func makeStatistics(orders: [LunchOrder], classifiedItems: ClassifiedItems) -> ReportStatistics {
@@ -192,6 +254,33 @@ struct KitchenRunSheetService {
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
+    private func groupedDrinkItems(_ items: [MenuItem]) -> [RunSheetItem] {
+        Dictionary(grouping: items, by: drinkDisplayName)
+            .map { drinkName, items in
+                RunSheetItem(
+                    name: drinkName,
+                    quantity: items.reduce(0) { $0 + $1.quantity },
+                    variants: groupedDrinkVariants(items)
+                )
+            }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    private func groupedDrinkVariants(_ items: [MenuItem]) -> [RunSheetVariant] {
+        let variants = items.flatMap { item in
+            item.variants
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .map { RunSheetVariant(name: $0, quantity: item.quantity) }
+        }
+
+        return Dictionary(grouping: variants, by: \.name)
+            .map { name, variants in
+                RunSheetVariant(name: name, quantity: variants.reduce(0) { $0 + $1.quantity })
+            }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
     private func isDrink(_ item: MenuItem) -> Bool {
         let normalizedName = item.name.normalizedReportText
         return normalizedDrinkNames.contains { normalizedName.contains($0) }
@@ -213,6 +302,10 @@ struct KitchenRunSheetService {
     }
 
     private var normalizedDrinkNames: [String] {
+        drinkNames.map(\.normalizedReportText)
+    }
+
+    private var drinkNames: [String] {
         [
             "Boost Juice",
             "Iced Tea - 600ml",
@@ -220,7 +313,17 @@ struct KitchenRunSheetService {
             "Presha Fruit Juice",
             "Just Juice Box - 200ml",
             "Bottled Water - 600ml"
-        ].map(\.normalizedReportText)
+        ]
+    }
+
+    private func drinkDisplayName(for item: MenuItem) -> String {
+        let normalizedName = item.name.normalizedReportText
+        if let drinkName = drinkNames.first(where: { normalizedName.contains($0.normalizedReportText) }) {
+            return drinkName
+        }
+
+        let trimmedName = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty ? "Unnamed Drink" : trimmedName
     }
 
     @discardableResult
@@ -265,6 +368,16 @@ private struct ReportStatistics {
 }
 
 private struct RunSheetItem {
+    var name: String
+    var quantity: Int
+    var variants: [RunSheetVariant] = []
+
+    var requiredHeight: CGFloat {
+        18 + CGFloat(variants.count * 14)
+    }
+}
+
+private struct RunSheetVariant {
     var name: String
     var quantity: Int
 }

@@ -24,7 +24,7 @@ struct School_Lunch_ManagerApp: App {
     }()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("School Lunch Manager") {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
