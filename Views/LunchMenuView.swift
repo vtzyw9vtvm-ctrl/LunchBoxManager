@@ -8,27 +8,53 @@ struct LunchMenuView: View {
 
         NavigationStack {
 
-            List(viewModel.categories) { category in
+            List {
 
-                NavigationLink {
+                Section {
 
-                    LunchCategoryView(
-                        category: category,
-                        viewModel: viewModel
-                    )
+                    ForEach(viewModel.categories) { category in
 
-                } label: {
+                        NavigationLink {
 
-                    HStack {
+                            LunchCategoryView(
+                                category: category,
+                                viewModel: viewModel
+                            )
 
-                        Text(category.icon)
-                            .font(.title2)
+                        } label: {
 
-                        Text(category.name)
-                            .font(.title3.weight(.semibold))
+                            HStack(spacing: 16) {
+
+                                Text(category.icon)
+                                    .font(.largeTitle)
+
+                                VStack(alignment: .leading, spacing: 4) {
+
+                                    Text(category.name)
+                                        .font(.headline)
+
+                                    Text("\(category.items.count) item\(category.items.count == 1 ? "" : "s")")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary)
+
+                            }
+                            .padding(.vertical, 6)
+
+                        }
 
                     }
-                    .padding(.vertical, 6)
+
+                } header: {
+
+                    Text("Categories")
+
                 }
 
             }
@@ -37,6 +63,7 @@ struct LunchMenuView: View {
         }
 
     }
+
 }
 
 #Preview {
