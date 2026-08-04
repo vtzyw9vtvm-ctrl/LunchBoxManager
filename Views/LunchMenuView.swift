@@ -2,57 +2,33 @@ import SwiftUI
 
 struct LunchMenuView: View {
 
-    private let categories = LunchCategory.defaults
+    let categories: [LunchCategory] = [
+        LunchCategory(name: "Hot Food", icon: "🍔"),
+        LunchCategory(name: "Sandwiches", icon: "🥪"),
+        LunchCategory(name: "Snacks", icon: "🍪"),
+        LunchCategory(name: "Drinks", icon: "🥤")
+    ]
 
     var body: some View {
-
-        ScrollView {
-
-            VStack(alignment: .leading, spacing: 24) {
-
-                Text("Lunch Menu")
-                    .font(.largeTitle.bold())
-
-                Text("Manage the menu that parents see when ordering lunch.")
-                    .foregroundStyle(.secondary)
-
-                Divider()
-
-                ForEach(categories) { category in
-
-                    HStack {
-
+        NavigationStack {
+            List(categories) { category in
+                NavigationLink {
+                    LunchCategoryView(category: category)
+                } label: {
+                    HStack(spacing: 16) {
                         Text(category.icon)
-                            .font(.title)
+                            .font(.title2)
 
                         Text(category.name)
-                            .font(.title2.weight(.semibold))
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(.secondary)
-
+                            .font(.title3)
+                            .fontWeight(.semibold)
                     }
-                    .padding()
-
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(nsColor: .controlBackgroundColor))
-                    )
-
+                    .padding(.vertical, 8)
                 }
-
-                Spacer()
-
             }
-            .padding(32)
-
+            .navigationTitle("Lunch Menu")
         }
-        .navigationTitle("Lunch Menu")
-
     }
-
 }
 
 #Preview {
