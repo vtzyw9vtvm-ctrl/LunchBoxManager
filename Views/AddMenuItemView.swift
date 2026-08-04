@@ -4,11 +4,24 @@ struct AddMenuItemView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name = ""
-    @State private var description = ""
-    @State private var price = ""
+    @State private var name: String
+    @State private var description: String
+    @State private var price: String
 
+    let existingItem: LunchMenuItem?
     var onSave: (LunchMenuItem) -> Void
+
+    init(
+        item: LunchMenuItem? = nil,
+        onSave: @escaping (LunchMenuItem) -> Void
+    ) {
+        existingItem = item
+        self.onSave = onSave
+
+        _name = State(initialValue: item?.name ?? "")
+        _description = State(initialValue: item?.description ?? "")
+        _price = State(initialValue: item != nil ? String(format: "%.2f", item!.price) : "")
+    }
 
     var body: some View {
 
@@ -25,7 +38,7 @@ struct AddMenuItemView: View {
                     TextField("Price", text: $price)
                 }
             }
-            .navigationTitle("Add Item")
+            .navigationTitle(existingItem == nil ? "Add Item" : "Edit Item")
             .toolbar {
 
                 ToolbarItem(placement: .cancellationAction) {
@@ -39,14 +52,14 @@ struct AddMenuItemView: View {
 
                     Button("Save") {
 
-                        let newItem = LunchMenuItem(
+                        let item = LunchMenuItem(
                             name: name,
                             description: description,
                             price: Double(price) ?? 0,
-                            imageName: ""
+                            imageName: existingItem?.imageName ?? ""
                         )
 
-                        onSave(newItem)
+                        onSave(item)
 
                         dismiss()
                     }
@@ -57,8 +70,5 @@ struct AddMenuItemView: View {
 }
 
 #Preview {
-
-    AddMenuItemView { _ in
-
-    }
+    AddMenuItemView { _ in }
 }

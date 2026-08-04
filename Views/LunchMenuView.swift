@@ -2,32 +2,40 @@ import SwiftUI
 
 struct LunchMenuView: View {
 
-    let categories: [LunchCategory] = [
-        LunchCategory(name: "Hot Food", icon: "🍔"),
-        LunchCategory(name: "Sandwiches", icon: "🥪"),
-        LunchCategory(name: "Snacks", icon: "🍪"),
-        LunchCategory(name: "Drinks", icon: "🥤")
-    ]
+    @State private var viewModel = MenuViewModel()
 
     var body: some View {
+
         NavigationStack {
-            List(categories) { category in
+
+            List(viewModel.categories) { category in
+
                 NavigationLink {
-                    LunchCategoryView(category: category)
+
+                    LunchCategoryView(
+                        category: category,
+                        viewModel: viewModel
+                    )
+
                 } label: {
-                    HStack(spacing: 16) {
+
+                    HStack {
+
                         Text(category.icon)
                             .font(.title2)
 
                         Text(category.name)
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .font(.title3.weight(.semibold))
+
                     }
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 6)
                 }
+
             }
             .navigationTitle("Lunch Menu")
+
         }
+
     }
 }
 
