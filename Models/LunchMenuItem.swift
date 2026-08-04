@@ -1,6 +1,6 @@
 import Foundation
 
-struct LunchMenuItem: Identifiable {
+struct LunchMenuItem: Identifiable, Hashable {
 
     let id = UUID()
 
