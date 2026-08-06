@@ -5,137 +5,185 @@ struct LunchCategoryView: View {
     let category: LunchCategory
     @Bindable var viewModel: MenuViewModel
 
+    @State private var searchText = ""
     @State private var showingAddItem = false
     @State private var editingItem: LunchMenuItem?
 
-    private var items: [LunchMenuItem] {
-        get {
-            viewModel.items(for: category)
+    private var filteredItems: [LunchMenuItem] {
+
+        let items = viewModel.items(for: category)
+
+        if searchText.isEmpty {
+            return items
         }
-        set {
-            viewModel.setItems(newValue, for: category)
+
+        return items.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.description.localizedCaseInsensitiveContains(searchText)
         }
+
     }
 
     var body: some View {
-        
-        List {
-            
-            Section {
-                
-                ForEach(items) { item in
-                    
+
+        VStack(spacing: 16) {
+
+            SearchBar(text: $searchText)
+
+            List {
+
+                Section {
+
                     Button {
-                        editingItem = item
+
+                        showingAddItem = true
+
                     } label: {
-                        
-                        HStack(spacing: 16) {
-                            
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.orange.opacity(0.15))
-                                .frame(width: 80, height: 80)
-                                .overlay(
-                                    Image(systemName: "photo")
-                                        .font(.title2)
-                                        .foregroundStyle(.orange)
-                                )
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                
-                                Text(item.name)
-                                    .font(.headline)
-                                
-                                Text(item.description)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                
-                                Text("$\(item.price, specifier: "%.2f")")
-                                    .font(.headline)
-                                    .foregroundStyle(.orange)
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "line.3.horizontal")
-                                .foregroundStyle(.secondary)
-                        }
+
+                        Label("Add Item", systemImage: "plus.circle.fill")
+
                     }
-                    .buttonStyle(.plain)
-                    .padding(.vertical, 8)
-                    
+
+                    ForEach(filteredItems) { item in
+
+                        Button {
+
+                            editingItem = item
+
+                        } label: {
+
+                            MenuItemCardView(item: item)
+
+                        }
+                        .buttonStyle(.plain)
+
+                        .contextMenu {
+
+                            Button {
+
+                                duplicate(item)
+
+                            } label: {
+
+                                Label("Duplicate", systemImage: "plus.square.on.square")
+
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+
+                                delete(item)
+
+                            } label: {
+
+                                Label("Delete", systemImage: "trash")
+
+                            }
+
+                        }
+
+                    }
+                    .onDelete(perform: deleteItems)
+                    .onMove(perform: moveItems)
+
                 }
-                .onMove(perform: moveItems)
-                .onDelete(perform: deleteItems)
-                
-            } header: {
-                
-                Button {
-                    showingAddItem = true
-                } label: {
-                    Label("Add Item", systemImage: "plus.circle.fill")
-                }
-                
+
             }
-            
+
         }
+        .padding()
         .navigationTitle(category.name)
-        
+
         .sheet(isPresented: $showingAddItem) {
-            
+
             AddMenuItemView { newItem in
-                
-                var updated = items
-                updated.append(newItem)
-                viewModel.setItems(updated, for: category)
-                
+
+                var items = viewModel.items(for: category)
+                items.append(newItem)
+                viewModel.setItems(items, for: category)
+
             }
-            
+
         }
-        
+
         .sheet(item: $editingItem) { item in
-            
+
             AddMenuItemView(item: item) { updatedItem in
-                
-                var updated = items
-                
-                if let index = updated.firstIndex(where: { $0.id == item.id }) {
-                    updated[index] = updatedItem
+
+                var items = viewModel.items(for: category)
+
+                if let index = items.firstIndex(where: { $0.id == updatedItem.id }) {
+                    items[index] = updatedItem
                 }
-                
-                viewModel.setItems(updated, for: category)
-                
+
+                viewModel.setItems(items, for: category)
+
             }
-            
+
         }
-        
-        .toolbar {
-            
-            Button("Edit") {
-                // we'll wire this up later
-            }
-            
-        }
+
     }
 
     private func moveItems(from source: IndexSet, to destination: Int) {
 
-        var updated = items
-        updated.move(fromOffsets: source, toOffset: destination)
-        viewModel.setItems(updated, for: category)
+        var items = viewModel.items(for: category)
+        items.move(fromOffsets: source, toOffset: destination)
+        viewModel.setItems(items, for: category)
 
     }
 
     private func deleteItems(at offsets: IndexSet) {
 
-        var updated = items
-        updated.remove(atOffsets: offsets)
-        viewModel.setItems(updated, for: category)
+        var items = viewModel.items(for: category)
+
+        let filtered = filteredItems
+        let idsToDelete = offsets.map { filtered[$0].id }
+
+        items.removeAll { idsToDelete.contains($0.id) }
+
+        viewModel.setItems(items, for: category)
+
+    }
+
+    private func duplicate(_ item: LunchMenuItem) {
+
+        var items = viewModel.items(for: category)
+
+        let copy = LunchMenuItem(
+            name: item.name + " Copy",
+            description: item.description,
+            category: item.category,
+            price: item.price,
+            costPrice: item.costPrice,
+            gstIncluded: item.gstIncluded,
+            isActive: item.isActive,
+            isFeatured: item.isFeatured,
+            imageName: item.imageName
+        )
+
+        items.append(copy)
+
+        viewModel.setItems(items, for: category)
+
+        editingItem = copy
+
+    }
+
+    private func delete(_ item: LunchMenuItem) {
+
+        var items = viewModel.items(for: category)
+
+        items.removeAll { $0.id == item.id }
+
+        viewModel.setItems(items, for: category)
 
     }
 
 }
 
 #Preview {
+
     LunchCategoryView(
         category: LunchCategory(
             name: "Hot Food",
@@ -143,4 +191,5 @@ struct LunchCategoryView: View {
         ),
         viewModel: MenuViewModel()
     )
+
 }

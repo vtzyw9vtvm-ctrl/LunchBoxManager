@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct MenuItemCardView: View {
 
@@ -8,47 +9,98 @@ struct MenuItemCardView: View {
 
         HStack(spacing: 16) {
 
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.orange.opacity(0.15))
-                .frame(width: 80, height: 80)
-                .overlay(
-                    Image(systemName: "photo")
-                        .font(.title2)
-                        .foregroundStyle(.orange)
-                )
+            if let image = ImageStorage.shared.loadImage(named: item.imageName) {
+
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 90, height: 90)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            } else {
+
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.gray.opacity(0.15))
+                    .frame(width: 90, height: 90)
+                    .overlay(
+                        Image(systemName: "photo")
+                            .font(.title2)
+                            .foregroundStyle(.secondary)
+                    )
+
+            }
 
             VStack(alignment: .leading, spacing: 6) {
 
-                Text(item.name)
-                    .font(.headline)
+                HStack {
+
+                    Text(item.name)
+                        .font(.headline)
+
+                    if item.isFeatured {
+
+                        Label("", systemImage: "star.fill")
+                            .foregroundStyle(.yellow)
+
+                    }
+
+                    Spacer()
+
+                    if item.isActive {
+
+                        Text("ACTIVE")
+                            .font(.caption.bold())
+                            .foregroundStyle(.green)
+
+                    } else {
+
+                        Text("HIDDEN")
+                            .font(.caption.bold())
+                            .foregroundStyle(.red)
+
+                    }
+
+                }
 
                 Text(item.description)
-                    .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
 
-                Text("$\(item.price, specifier: "%.2f")")
-                    .font(.headline)
-                    .foregroundStyle(.orange)
+                HStack {
+
+                    Text("$\(item.price, specifier: "%.2f")")
+                        .font(.title3.bold())
+                        .foregroundStyle(.orange)
+
+                    Spacer()
+
+                    Text("Cost $\(item.costPrice, specifier: "%.2f")")
+                        .foregroundStyle(.secondary)
+
+                    Text("Profit $\(item.price - item.costPrice, specifier: "%.2f")")
+                        .foregroundStyle(.green)
+
+                }
+
             }
 
-            Spacer()
-
-            Image(systemName: "line.3.horizontal")
-                .font(.title3)
-                .foregroundStyle(.secondary)
         }
         .padding(.vertical, 8)
+
     }
+
 }
 
 #Preview {
+
     MenuItemCardView(
         item: LunchMenuItem(
             name: "Chicken Burger",
-            description: "Crumbed chicken, lettuce and mayo",
+            description: "Crumbed chicken with lettuce and mayo",
             price: 10.50,
-            imageName: ""
+            costPrice: 4.10,
+            isFeatured: true,
+            imageName: "chicken_burger"
         )
     )
+
 }

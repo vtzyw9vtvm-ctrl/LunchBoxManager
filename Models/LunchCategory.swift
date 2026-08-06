@@ -1,6 +1,6 @@
 import Foundation
 
-struct LunchCategory: Identifiable, Hashable {
+struct LunchCategory: Identifiable, Hashable, Codable {
 
     var id = UUID()
     var name: String
@@ -19,22 +19,4 @@ struct LunchCategory: Identifiable, Hashable {
         self.items = items
     }
 
-    static let defaults: [LunchCategory] = [
-        LunchCategory(
-            name: "Hot Food",
-            icon: "🍔"
-        ),
-        LunchCategory(
-            name: "Sandwiches",
-            icon: "🥪"
-        ),
-        LunchCategory(
-            name: "Snacks",
-            icon: "🍪"
-        ),
-        LunchCategory(
-            name: "Drinks",
-            icon: "🥤"
-        )
-    ]
 }

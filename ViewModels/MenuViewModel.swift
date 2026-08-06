@@ -4,63 +4,78 @@ import SwiftUI
 @Observable
 final class MenuViewModel {
 
-    var categories: [LunchCategory]
+    private let saveKey = "LunchMenu"
+
+    var categories: [LunchCategory] = [] {
+        didSet {
+            save()
+        }
+    }
 
     init() {
 
-        categories = [
+        load()
 
-            LunchCategory(
-                name: "Hot Food",
-                icon: "🍔",
-                items: [
+        if categories.isEmpty {
 
-                    LunchMenuItem(
-                        name: "Bacon & Egg Roll",
-                        description: "Seeded brioche bun with bacon and egg",
-                        price: 8.50,
-                        imageName: "bacon_egg"
-                    ),
+            categories = [
 
-                    LunchMenuItem(
-                        name: "Chicken Burger",
-                        description: "Crumbed chicken, lettuce and mayo",
-                        price: 10.50,
-                        imageName: "chicken_burger"
-                    ),
+                LunchCategory(
+                    name: "Hot Food",
+                    icon: "🍔",
+                    items: [
 
-                    LunchMenuItem(
-                        name: "Fish & Chips",
-                        description: "Battered fish with chips",
-                        price: 11.00,
-                        imageName: "fish_chips"
-                    ),
+                        LunchMenuItem(
+                            name: "Bacon & Egg Roll",
+                            description: "Seeded brioche bun with bacon and egg",
+                            price: 8.50,
+                            imageName: "bacon_egg_roll"
+                        ),
 
-                    LunchMenuItem(
-                        name: "Nuggets & Chips",
-                        description: "Six nuggets with chips",
-                        price: 8.00,
-                        imageName: "nuggets"
-                    )
-                ]
-            ),
+                        LunchMenuItem(
+                            name: "Chicken Burger",
+                            description: "Crumbed chicken, lettuce and mayo",
+                            price: 10.50,
+                            imageName: "chicken_burger"
+                        ),
 
-            LunchCategory(
-                name: "Sandwiches",
-                icon: "🥪"
-            ),
+                        LunchMenuItem(
+                            name: "Fish & Chips",
+                            description: "Battered fish with chips",
+                            price: 11.00,
+                            imageName: "fish_chips"
+                        ),
 
-            LunchCategory(
-                name: "Snacks",
-                icon: "🍪"
-            ),
+                        LunchMenuItem(
+                            name: "Nuggets & Chips",
+                            description: "Six nuggets with chips",
+                            price: 8.00,
+                            imageName: "nuggets"
+                        )
 
-            LunchCategory(
-                name: "Drinks",
-                icon: "🥤"
-            )
+                    ]
+                ),
 
-        ]
+                LunchCategory(
+                    name: "Sandwiches",
+                    icon: "🥪"
+                ),
+
+                LunchCategory(
+                    name: "Snacks",
+                    icon: "🍪"
+                ),
+
+                LunchCategory(
+                    name: "Drinks",
+                    icon: "🥤"
+                )
+
+            ]
+
+            save()
+        }
+
     }
 
     func items(for category: LunchCategory) -> [LunchMenuItem] {
@@ -76,6 +91,48 @@ final class MenuViewModel {
         }
 
         categories[index].items = items
+
+        save()
+
+    }
+
+    // MARK: - Save
+
+    func save() {
+
+        do {
+
+            let data = try JSONEncoder().encode(categories)
+
+            UserDefaults.standard.set(data, forKey: saveKey)
+
+        } catch {
+
+            print("Save failed:", error)
+
+        }
+
+    }
+
+    // MARK: - Load
+
+    private func load() {
+
+        guard
+            let data = UserDefaults.standard.data(forKey: saveKey)
+        else {
+            return
+        }
+
+        do {
+
+            categories = try JSONDecoder().decode([LunchCategory].self, from: data)
+
+        } catch {
+
+            print("Load failed:", error)
+
+        }
 
     }
 
