@@ -10,11 +10,17 @@ struct AddMenuItemView: View {
     @State private var sellPrice: String
     @State private var costPrice: String
     @State private var imageName: String
+
     @State private var isActive: Bool
     @State private var isFeatured: Bool
     @State private var gstIncluded: Bool
 
+    @State private var modifierGroups: [UUID]
+
+    @State private var modifierManager = ModifierManager()
+
     let existingItem: LunchMenuItem?
+
     var onSave: (LunchMenuItem) -> Void
 
     init(
@@ -27,12 +33,26 @@ struct AddMenuItemView: View {
 
         _name = State(initialValue: item?.name ?? "")
         _description = State(initialValue: item?.description ?? "")
-        _sellPrice = State(initialValue: item != nil ? String(format: "%.2f", item!.price) : "")
-        _costPrice = State(initialValue: item != nil ? String(format: "%.2f", item!.costPrice) : "")
+
+        _sellPrice = State(
+            initialValue: item == nil
+            ? ""
+            : String(format: "%.2f", item!.price)
+        )
+
+        _costPrice = State(
+            initialValue: item == nil
+            ? ""
+            : String(format: "%.2f", item!.costPrice)
+        )
+
         _imageName = State(initialValue: item?.imageName ?? "")
+
         _isActive = State(initialValue: item?.isActive ?? true)
         _isFeatured = State(initialValue: item?.isFeatured ?? false)
         _gstIncluded = State(initialValue: item?.gstIncluded ?? true)
+
+        _modifierGroups = State(initialValue: item?.modifierGroups ?? [])
 
     }
 
@@ -42,39 +62,59 @@ struct AddMenuItemView: View {
 
             ScrollView {
 
-                VStack(alignment: .leading, spacing: 28) {
+                HStack(alignment: .top, spacing: 24) {
 
-                    SectionCard("Photo") {
+                    VStack(spacing: 24) {
 
-                        PhotoPickerCard(imageName: $imageName)
+                        SectionCard("Photo") {
 
-                    }
+                            PhotoPickerCard(
+                                imageName: $imageName
+                            )
 
-                    SectionCard("Details") {
+                        }
 
-                        TextField("Name", text: $name)
-                            .textFieldStyle(.roundedBorder)
+                        SectionCard("Options") {
 
-                        TextField("Description", text: $description)
-                            .textFieldStyle(.roundedBorder)
+                            Toggle("Active", isOn: $isActive)
 
-                    }
+                            Toggle("Featured", isOn: $isFeatured)
 
-                    SectionCard("Pricing") {
-
-                        PriceEditor(
-                            sellPrice: $sellPrice,
-                            costPrice: $costPrice,
-                            gstIncluded: $gstIncluded
-                        )
+                        }
 
                     }
+                    .frame(width: 280)
 
-                    SectionCard("Options") {
+                    VStack(spacing: 24) {
 
-                        Toggle("Active", isOn: $isActive)
+                        SectionCard("Details") {
 
-                        Toggle("Featured", isOn: $isFeatured)
+                            TextField("Name", text: $name)
+                                .textFieldStyle(.roundedBorder)
+
+                            TextField("Description", text: $description)
+                                .textFieldStyle(.roundedBorder)
+
+                        }
+
+                        SectionCard("Pricing") {
+
+                            PriceEditor(
+                                sellPrice: $sellPrice,
+                                costPrice: $costPrice,
+                                gstIncluded: $gstIncluded
+                            )
+
+                        }
+
+                        SectionCard("Modifier Groups") {
+
+                            ModifierGroupSelector(
+                                selectedGroups: $modifierGroups,
+                                manager: modifierManager
+                            )
+
+                        }
 
                     }
 
@@ -82,16 +122,23 @@ struct AddMenuItemView: View {
                 .padding(24)
 
             }
-            .frame(minWidth: 600, minHeight: 700)
 
-            .navigationTitle(existingItem == nil ? "Add Menu Item" : "Edit Menu Item")
+            .frame(minWidth: 900, minHeight: 720)
+
+            .navigationTitle(
+                existingItem == nil
+                ? "Add Menu Item"
+                : "Edit Menu Item"
+            )
 
             .toolbar {
 
                 ToolbarItem(placement: .cancellationAction) {
 
                     Button("Cancel") {
+
                         dismiss()
+
                     }
 
                 }
@@ -101,18 +148,33 @@ struct AddMenuItemView: View {
                     Button("Save") {
 
                         let item = LunchMenuItem(
+
                             id: existingItem?.id ?? UUID(),
+
                             name: name,
+
                             description: description,
+
+                            category: existingItem?.category ?? "",
+
                             price: Double(sellPrice) ?? 0,
+
                             costPrice: Double(costPrice) ?? 0,
+
                             gstIncluded: gstIncluded,
+
                             isActive: isActive,
+
                             isFeatured: isFeatured,
-                            imageName: imageName
+
+                            imageName: imageName,
+
+                            modifierGroups: modifierGroups
+
                         )
 
                         onSave(item)
+
                         dismiss()
 
                     }

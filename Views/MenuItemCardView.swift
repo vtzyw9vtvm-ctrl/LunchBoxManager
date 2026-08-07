@@ -1,69 +1,43 @@
 import SwiftUI
-import AppKit
 
 struct MenuItemCardView: View {
 
     let item: LunchMenuItem
+    var isSelected: Bool = false
 
     var body: some View {
 
-        HStack(spacing: 16) {
+        HStack(spacing: 18) {
 
-            if let image = ImageStorage.shared.loadImage(named: item.imageName) {
+            Group {
 
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 90, height: 90)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                if let image = ImageStorage.shared.loadImage(named: item.imageName) {
 
-            } else {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
 
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.gray.opacity(0.15))
-                    .frame(width: 90, height: 90)
-                    .overlay(
-                        Image(systemName: "photo")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                    )
+                } else {
 
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-
-                HStack {
-
-                    Text(item.name)
-                        .font(.headline)
-
-                    if item.isFeatured {
-
-                        Label("", systemImage: "star.fill")
-                            .foregroundStyle(.yellow)
-
-                    }
-
-                    Spacer()
-
-                    if item.isActive {
-
-                        Text("ACTIVE")
-                            .font(.caption.bold())
-                            .foregroundStyle(.green)
-
-                    } else {
-
-                        Text("HIDDEN")
-                            .font(.caption.bold())
-                            .foregroundStyle(.red)
-
-                    }
+                    Image(systemName: "photo")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
 
                 }
 
+            }
+            .frame(width: 92, height: 92)
+            .background(Color(.quaternarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+
+            VStack(alignment: .leading, spacing: 8) {
+
+                Text(item.name)
+                    .font(.headline)
+
                 Text(item.description)
                     .foregroundStyle(.secondary)
+                    .lineLimit(2)
 
                 HStack {
 
@@ -83,24 +57,32 @@ struct MenuItemCardView: View {
 
             }
 
+            Spacer()
+
+            if item.isActive {
+
+                Text("ACTIVE")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+
+            }
+
         }
-        .padding(.vertical, 8)
+        .padding(16)
+        .background(
+
+            RoundedRectangle(cornerRadius: 16)
+                .fill(isSelected ? Color.accentColor : Color.clear)
+
+        )
+        .overlay(
+
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.gray.opacity(0.15))
+
+        )
+        .animation(.easeInOut(duration: 0.18), value: isSelected)
 
     }
-
-}
-
-#Preview {
-
-    MenuItemCardView(
-        item: LunchMenuItem(
-            name: "Chicken Burger",
-            description: "Crumbed chicken with lettuce and mayo",
-            price: 10.50,
-            costPrice: 4.10,
-            isFeatured: true,
-            imageName: "chicken_burger"
-        )
-    )
 
 }

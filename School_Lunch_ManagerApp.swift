@@ -2,31 +2,27 @@
 //  School_Lunch_ManagerApp.swift
 //  School Lunch Manager
 //
-//  Created by Marilyn Merritt on 18/7/2026.
-//
 
 import SwiftUI
-import SwiftData
 
 @main
 struct School_Lunch_ManagerApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
 
     var body: some Scene {
-        WindowGroup("School Lunch Manager") {
-            ContentView()
+
+        WindowGroup("LunchBoxManager") {
+
+            SidebarView()
+
         }
-        .modelContainer(sharedModelContainer)
+
+        .windowResizability(.contentSize)
+
+        .defaultSize(
+            width: 1400,
+            height: 900
+        )
+
     }
+
 }

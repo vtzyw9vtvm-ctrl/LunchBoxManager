@@ -56,27 +56,41 @@ final class MenuViewModel {
                     ]
                 ),
 
-                LunchCategory(
-                    name: "Sandwiches",
-                    icon: "🥪"
-                ),
-
-                LunchCategory(
-                    name: "Snacks",
-                    icon: "🍪"
-                ),
-
-                LunchCategory(
-                    name: "Drinks",
-                    icon: "🥤"
-                )
+                LunchCategory(name: "Sandwiches", icon: "🥪"),
+                LunchCategory(name: "Snacks", icon: "🍪"),
+                LunchCategory(name: "Drinks", icon: "🥤")
 
             ]
 
             save()
+
         }
 
     }
+
+    // MARK: Category
+
+    @discardableResult
+    func addCategory() -> LunchCategory {
+
+        let category = LunchCategory(
+            name: "New Category",
+            icon: "🍽️"
+        )
+
+        categories.append(category)
+
+        return category
+
+    }
+
+    func deleteCategory(_ category: LunchCategory) {
+
+        categories.removeAll { $0.id == category.id }
+
+    }
+
+    // MARK: Items
 
     func items(for category: LunchCategory) -> [LunchMenuItem] {
 
@@ -92,11 +106,55 @@ final class MenuViewModel {
 
         categories[index].items = items
 
-        save()
+    }
+
+    @discardableResult
+    func addItem(to category: LunchCategory) -> LunchMenuItem {
+
+        let item = LunchMenuItem(
+            name: "New Item",
+            description: "",
+            category: category.name,
+            price: 0
+        )
+
+        var items = items(for: category)
+        items.append(item)
+
+        setItems(items, for: category)
+
+        return item
 
     }
 
-    // MARK: - Save
+    func deleteItem(_ item: LunchMenuItem,
+                    from category: LunchCategory) {
+
+        var items = items(for: category)
+
+        items.removeAll { $0.id == item.id }
+
+        setItems(items, for: category)
+
+    }
+
+    func duplicateItem(_ item: LunchMenuItem,
+                       in category: LunchCategory) -> LunchMenuItem {
+
+        var copy = item
+        copy.id = UUID()
+        copy.name += " Copy"
+
+        var items = items(for: category)
+        items.append(copy)
+
+        setItems(items, for: category)
+
+        return copy
+
+    }
+
+    // MARK: Save
 
     func save() {
 
@@ -106,31 +164,36 @@ final class MenuViewModel {
 
             UserDefaults.standard.set(data, forKey: saveKey)
 
-        } catch {
+        }
 
-            print("Save failed:", error)
+        catch {
+
+            print(error)
 
         }
 
     }
 
-    // MARK: - Load
+    // MARK: Load
 
     private func load() {
 
         guard
             let data = UserDefaults.standard.data(forKey: saveKey)
-        else {
-            return
-        }
+        else { return }
 
         do {
 
-            categories = try JSONDecoder().decode([LunchCategory].self, from: data)
+            categories = try JSONDecoder().decode(
+                [LunchCategory].self,
+                from: data
+            )
 
-        } catch {
+        }
 
-            print("Load failed:", error)
+        catch {
+
+            print(error)
 
         }
 
