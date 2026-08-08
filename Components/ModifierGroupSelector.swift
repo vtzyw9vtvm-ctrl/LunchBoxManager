@@ -8,90 +8,79 @@ struct ModifierGroupSelector: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: 18) {
-
-            Text("Modifier Groups")
-                .font(.title3.bold())
+        VStack(spacing: 12) {
 
             ForEach(manager.groups) { group in
 
-                VStack(alignment: .leading, spacing: 10) {
+                Button {
 
-                    Toggle(
-                        isOn: Binding(
+                    toggle(group)
 
-                            get: {
+                } label: {
 
+                    HStack(spacing: 16) {
+
+                        Image(systemName:
                                 selectedGroups.contains(group.id)
-
-                            },
-
-                            set: { isOn in
-
-                                if isOn {
-
-                                    if !selectedGroups.contains(group.id) {
-
-                                        selectedGroups.append(group.id)
-
-                                    }
-
-                                } else {
-
-                                    selectedGroups.removeAll {
-                                        $0 == group.id
-                                    }
-
-                                }
-
-                            }
-
+                              ? "checkmark.circle.fill"
+                              : "circle")
+                        .font(.title2)
+                        .foregroundColor(
+                            selectedGroups.contains(group.id)
+                            ? .accentColor
+                            : .secondary
                         )
 
-                    ) {
+                        VStack(alignment: .leading, spacing: 4) {
 
-                        Text(group.name)
-                            .font(.headline)
+                            Text(group.name)
+                                .font(.headline)
 
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-
-                        ForEach(group.modifiers) { modifier in
-
-                            HStack {
-
-                                Image(systemName: "circle.fill")
-                                    .font(.system(size: 5))
-                                    .foregroundStyle(.secondary)
-
-                                Text(modifier.name)
-
-                                Spacer()
-
-                                if modifier.price > 0 {
-
-                                    Text("+$\(modifier.price, specifier: "%.2f")")
-                                        .foregroundStyle(.orange)
-
-                                }
-
-                            }
+                            Text("\(group.modifiers.count) modifier\(group.modifiers.count == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
 
                         }
 
-                    }
-                    .padding(.leading, 28)
+                        Spacer()
 
-                    Divider()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.tertiary)
+
+                    }
+                    .padding()
+
+                    .background(
+
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(
+                                selectedGroups.contains(group.id)
+                                ? Color.accentColor.opacity(0.12)
+                                : Color.gray.opacity(0.06)
+                            )
+
+                    )
 
                 }
+                .buttonStyle(.plain)
 
             }
 
         }
 
-        .padding()
+    }
+
+    private func toggle(_ group: ModifierGroup) {
+
+        if let index = selectedGroups.firstIndex(of: group.id) {
+
+            selectedGroups.remove(at: index)
+
+        } else {
+
+            selectedGroups.append(group.id)
+
+        }
 
     }
 
@@ -99,7 +88,8 @@ struct ModifierGroupSelector: View {
 
 #Preview {
 
-    @Previewable @State var selected: [UUID] = []
+    @Previewable
+    @State var selected: [UUID] = []
 
     ModifierGroupSelector(
         selectedGroups: $selected,

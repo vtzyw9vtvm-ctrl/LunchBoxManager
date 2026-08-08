@@ -6,11 +6,7 @@ final class MenuViewModel {
 
     private let saveKey = "LunchMenu"
 
-    var categories: [LunchCategory] = [] {
-        didSet {
-            save()
-        }
-    }
+    var categories: [LunchCategory] = []
 
     init() {
 
@@ -56,9 +52,20 @@ final class MenuViewModel {
                     ]
                 ),
 
-                LunchCategory(name: "Sandwiches", icon: "🥪"),
-                LunchCategory(name: "Snacks", icon: "🍪"),
-                LunchCategory(name: "Drinks", icon: "🥤")
+                LunchCategory(
+                    name: "Sandwiches",
+                    icon: "🥪"
+                ),
+
+                LunchCategory(
+                    name: "Snacks",
+                    icon: "🍪"
+                ),
+
+                LunchCategory(
+                    name: "Drinks",
+                    icon: "🥤"
+                )
 
             ]
 
@@ -68,29 +75,55 @@ final class MenuViewModel {
 
     }
 
-    // MARK: Category
+    // MARK: - Categories
 
     @discardableResult
     func addCategory() -> LunchCategory {
 
         let category = LunchCategory(
             name: "New Category",
-            icon: "🍽️"
+            icon: "🍽️",
+            items: [
+                LunchMenuItem(
+                    name: "New Item",
+                    description: "",
+                    category: "New Category",
+                    price: 0
+                )
+            ]
         )
 
         categories.append(category)
+
+        save()
 
         return category
 
     }
 
-    func deleteCategory(_ category: LunchCategory) {
+    func updateCategory(_ category: LunchCategory) {
 
-        categories.removeAll { $0.id == category.id }
+        guard let index = categories.firstIndex(where: { $0.id == category.id }) else {
+            return
+        }
+
+        categories[index] = category
+
+        save()
 
     }
 
-    // MARK: Items
+    func deleteCategory(_ category: LunchCategory) {
+
+        categories.removeAll {
+            $0.id == category.id
+        }
+
+        save()
+
+    }
+
+    // MARK: - Items
 
     func items(for category: LunchCategory) -> [LunchMenuItem] {
 
@@ -104,7 +137,12 @@ final class MenuViewModel {
             return
         }
 
-        categories[index].items = items
+        var updatedCategory = categories[index]
+        updatedCategory.items = items
+
+        categories[index] = updatedCategory
+
+        save()
 
     }
 
@@ -127,21 +165,46 @@ final class MenuViewModel {
 
     }
 
-    func deleteItem(_ item: LunchMenuItem,
-                    from category: LunchCategory) {
+    func updateItem(
+        _ item: LunchMenuItem,
+        in category: LunchCategory
+    ) {
 
         var items = items(for: category)
 
-        items.removeAll { $0.id == item.id }
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else {
+            return
+        }
+
+        items[index] = item
 
         setItems(items, for: category)
 
     }
 
-    func duplicateItem(_ item: LunchMenuItem,
-                       in category: LunchCategory) -> LunchMenuItem {
+    func deleteItem(
+        _ item: LunchMenuItem,
+        from category: LunchCategory
+    ) {
+
+        var items = items(for: category)
+
+        items.removeAll {
+            $0.id == item.id
+        }
+
+        setItems(items, for: category)
+
+    }
+
+    @discardableResult
+    func duplicateItem(
+        _ item: LunchMenuItem,
+        in category: LunchCategory
+    ) -> LunchMenuItem {
 
         var copy = item
+
         copy.id = UUID()
         copy.name += " Copy"
 
@@ -154,7 +217,7 @@ final class MenuViewModel {
 
     }
 
-    // MARK: Save
+    // MARK: - Persistence
 
     func save() {
 
@@ -162,25 +225,28 @@ final class MenuViewModel {
 
             let data = try JSONEncoder().encode(categories)
 
-            UserDefaults.standard.set(data, forKey: saveKey)
+            UserDefaults.standard.set(
+                data,
+                forKey: saveKey
+            )
 
         }
 
         catch {
 
-            print(error)
+            print("Menu save failed:", error)
 
         }
 
     }
 
-    // MARK: Load
-
     private func load() {
 
         guard
             let data = UserDefaults.standard.data(forKey: saveKey)
-        else { return }
+        else {
+            return
+        }
 
         do {
 
@@ -193,7 +259,7 @@ final class MenuViewModel {
 
         catch {
 
-            print(error)
+            print("Menu load failed:", error)
 
         }
 
