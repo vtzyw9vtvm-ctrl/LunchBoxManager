@@ -91,6 +91,35 @@ final class ModifierManager {
         }
 
     }
+    
+    func updateGroup(_ group: ModifierGroup) {
+
+        guard let index = groups.firstIndex(where: { $0.id == group.id }) else {
+            return
+        }
+
+        groups[index] = group
+
+    }
+
+    func updateModifier(
+        _ modifier: Modifier,
+        in group: ModifierGroup
+    ) {
+
+        guard let groupIndex = groups.firstIndex(where: { $0.id == group.id }) else {
+            return
+        }
+
+        guard let modifierIndex = groups[groupIndex]
+            .modifiers
+            .firstIndex(where: { $0.id == modifier.id }) else {
+            return
+        }
+
+        groups[groupIndex].modifiers[modifierIndex] = modifier
+
+    }
 
     // MARK: - Modifiers
 

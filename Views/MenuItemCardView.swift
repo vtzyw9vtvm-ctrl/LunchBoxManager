@@ -5,6 +5,9 @@ struct MenuItemCardView: View {
     let item: LunchMenuItem
     var isSelected: Bool = false
 
+    var onDuplicate: (() -> Void)? = nil
+    var onDelete: (() -> Void)? = nil
+
     var body: some View {
 
         HStack(spacing: 18) {
@@ -69,18 +72,49 @@ struct MenuItemCardView: View {
 
         }
         .padding(16)
+
         .background(
-
             RoundedRectangle(cornerRadius: 16)
-                .fill(isSelected ? Color.accentColor : Color.clear)
-
+                .fill(
+                    isSelected
+                    ? Color.accentColor.opacity(0.15)
+                    : Color.clear
+                )
         )
-        .overlay(
 
+        .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.gray.opacity(0.15))
-
         )
+
+        .contentShape(Rectangle())
+
+        .contextMenu {
+
+            Button {
+
+                onDuplicate?()
+
+            } label: {
+
+                Label("Duplicate", systemImage: "plus.square.on.square")
+
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+
+                onDelete?()
+
+            } label: {
+
+                Label("Delete", systemImage: "trash")
+
+            }
+
+        }
+
         .animation(.easeInOut(duration: 0.18), value: isSelected)
 
     }
