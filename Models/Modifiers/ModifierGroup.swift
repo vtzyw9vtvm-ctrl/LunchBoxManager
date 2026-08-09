@@ -10,6 +10,8 @@ struct ModifierGroup: Identifiable, Codable, Hashable {
 
     var maximumSelections: Int = 99
 
+    var useRadioButtons: Bool = false
+
     var modifiers: [Modifier] = []
 
 }

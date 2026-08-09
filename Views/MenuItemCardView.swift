@@ -6,6 +6,8 @@ struct MenuItemCardView: View {
     var isSelected: Bool = false
 
     var onDuplicate: (() -> Void)? = nil
+    var onMoveUp: (() -> Void)? = nil
+    var onMoveDown: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     var body: some View {
@@ -91,29 +93,36 @@ struct MenuItemCardView: View {
 
         .contextMenu {
 
-            Button {
 
-                onDuplicate?()
+                Button {
+                    onDuplicate?()
+                } label: {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                }
 
-            } label: {
+                Divider()
 
-                Label("Duplicate", systemImage: "plus.square.on.square")
+                Button {
+                    onMoveUp?()
+                } label: {
+                    Label("Move Up", systemImage: "arrow.up")
+                }
+
+                Button {
+                    onMoveDown?()
+                } label: {
+                    Label("Move Down", systemImage: "arrow.down")
+                }
+
+                Divider()
+
+                Button(role: .destructive) {
+                    onDelete?()
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
 
             }
-
-            Divider()
-
-            Button(role: .destructive) {
-
-                onDelete?()
-
-            } label: {
-
-                Label("Delete", systemImage: "trash")
-
-            }
-
-        }
 
         .animation(.easeInOut(duration: 0.18), value: isSelected)
 

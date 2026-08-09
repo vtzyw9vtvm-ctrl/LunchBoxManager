@@ -112,51 +112,72 @@ struct MenuWorkspaceView: View {
                 
                 if let category = selectedCategory {
                     
-                    ScrollView {
-                        
-                        LazyVStack(spacing: 12) {
-                            
-                            ForEach(menuManager.items(for: category)) { item in
-                                
-                                MenuItemCardView(
-                                    item: item,
-                                    isSelected: selectedItemID == item.id,
+                    List {
 
-                                    onDuplicate: {
+                        ForEach(menuManager.items(for: category)) { item in
 
-                                        guard let category = selectedCategory else { return }
+                            MenuItemCardView(
+                                item: item,
+                                isSelected: selectedItemID == item.id,
 
-                                        let copy = menuManager.duplicateItem(item, in: category)
+                                onDuplicate: {
 
-                                        selectedItemID = copy.id
+                                    guard let category = selectedCategory else { return }
 
-                                    },
+                                    let copy = menuManager.duplicateItem(
+                                        item,
+                                        in: category
+                                    )
 
-                                    onDelete: {
+                                    selectedItemID = copy.id
 
-                                        itemPendingDeletion = item
-                                        showDeleteItemConfirmation = true
+                                },
 
-                                    }
-                                )
-                                .contentShape(Rectangle())
+                                onMoveUp: {
 
-                                .onTapGesture {
+                                    guard let category = selectedCategory else { return }
 
-                                    withAnimation(.easeInOut(duration: 0.15)) {
+                                    menuManager.moveItemUp(
+                                        item,
+                                        in: category
+                                    )
 
-                                        selectedItemID = item.id
+                                },
 
-                                    }
+                                onMoveDown: {
+
+                                    guard let category = selectedCategory else { return }
+
+                                    menuManager.moveItemDown(
+                                        item,
+                                        in: category
+                                    )
+
+                                },
+
+                                onDelete: {
+
+                                    itemPendingDeletion = item
+                                    showDeleteItemConfirmation = true
 
                                 }
-                                
+                            )
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+
+                                withAnimation(.easeInOut(duration: 0.15)) {
+
+                                    selectedItemID = item.id
+
+                                }
+
                             }
-                            
+
                         }
-                        .padding()
-                        
+                       
+
                     }
+                    .listStyle(.plain)
                     
                 } else {
                     
@@ -252,6 +273,7 @@ struct MenuWorkspaceView: View {
                maxHeight: .infinity)
         
         .navigationTitle("Menu")
+        
         .onAppear {
 
             guard selectedCategory == nil else { return }

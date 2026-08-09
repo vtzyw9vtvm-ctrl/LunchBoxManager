@@ -145,6 +145,61 @@ final class MenuViewModel {
         save()
 
     }
+    
+    func moveItems(
+        from source: IndexSet,
+        to destination: Int,
+        in category: LunchCategory
+    ) {
+
+        var items = items(for: category)
+
+        items.move(
+            fromOffsets: source,
+            toOffset: destination
+        )
+
+        setItems(
+            items,
+            for: category
+        )
+
+    }
+    func moveItemUp(
+        _ item: LunchMenuItem,
+        in category: LunchCategory
+    ) {
+
+        var items = items(for: category)
+
+        guard
+            let index = items.firstIndex(where: { $0.id == item.id }),
+            index > 0
+        else { return }
+
+        items.swapAt(index, index - 1)
+
+        setItems(items, for: category)
+
+    }
+
+    func moveItemDown(
+        _ item: LunchMenuItem,
+        in category: LunchCategory
+    ) {
+
+        var items = items(for: category)
+
+        guard
+            let index = items.firstIndex(where: { $0.id == item.id }),
+            index < items.count - 1
+        else { return }
+
+        items.swapAt(index, index + 1)
+
+        setItems(items, for: category)
+
+    }
 
     @discardableResult
     func addItem(to category: LunchCategory) -> LunchMenuItem {

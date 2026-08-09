@@ -273,26 +273,19 @@ struct ModifierWorkspaceView: View {
 
                     VStack(spacing: 0) {
 
-                        CategoryInspector(
+                        ModifierGroupInspector(
 
-                            category: Binding(
+                            group: Binding(
 
                                 get: {
 
-                                    LunchCategory(
-                                        id: group.id,
-                                        name: group.name,
-                                        icon: "slider.horizontal.3"
-                                    )
+                                    group
 
                                 },
 
                                 set: { updated in
 
-                                    var updatedGroup = group
-                                    updatedGroup.name = updated.name
-
-                                    manager.updateGroup(updatedGroup)
+                                    manager.updateGroup(updated)
 
                                 }
 
