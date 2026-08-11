@@ -20,8 +20,18 @@ struct CategoryInspector: View {
                     TextField("Category Name", text: $category.name)
                         .textFieldStyle(.roundedBorder)
 
-                    TextField("Emoji", text: $category.icon)
-                        .textFieldStyle(.roundedBorder)
+                    HStack {
+
+                        Text("Icon")
+
+                        Spacer()
+
+                        TextField("", text: $category.icon)
+                            .frame(width: 60)
+                            .multilineTextAlignment(.center)
+                            .textFieldStyle(.roundedBorder)
+
+                    }
 
                 }
 

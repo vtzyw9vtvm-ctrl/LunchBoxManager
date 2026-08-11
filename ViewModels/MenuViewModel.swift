@@ -127,7 +127,17 @@ final class MenuViewModel {
 
     func items(for category: LunchCategory) -> [LunchMenuItem] {
 
-        categories.first(where: { $0.id == category.id })?.items ?? []
+        let items = categories.first(where: { $0.id == category.id })?.items ?? []
+
+        return items.sorted {
+
+            if $0.isFeatured != $1.isFeatured {
+                return $0.isFeatured && !$1.isFeatured
+            }
+
+            return $0.sortOrder < $1.sortOrder
+
+        }
 
     }
 
@@ -137,8 +147,14 @@ final class MenuViewModel {
             return
         }
 
+        var reorderedItems = items
+
+        for i in reorderedItems.indices {
+            reorderedItems[i].sortOrder = i
+        }
+
         var updatedCategory = categories[index]
-        updatedCategory.items = items
+        updatedCategory.items = reorderedItems
 
         categories[index] = updatedCategory
 
@@ -165,6 +181,26 @@ final class MenuViewModel {
         )
 
     }
+    func moveItem(
+        withId itemID: UUID,
+        to newIndex: Int,
+        in category: LunchCategory
+    ) {
+
+        var items = items(for: category)
+
+        guard let oldIndex = items.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        let item = items.remove(at: oldIndex)
+
+        items.insert(item, at: newIndex)
+
+        setItems(items, for: category)
+
+    }
+    
     func moveItemUp(
         _ item: LunchMenuItem,
         in category: LunchCategory
@@ -205,6 +241,7 @@ final class MenuViewModel {
     func addItem(to category: LunchCategory) -> LunchMenuItem {
 
         let item = LunchMenuItem(
+            sortOrder: items(for: category).count,
             name: "New Item",
             description: "",
             category: category.name,
@@ -231,7 +268,10 @@ final class MenuViewModel {
             return
         }
 
-        items[index] = item
+        var updatedItem = item
+        updatedItem.lastEdited = Date()
+
+        items[index] = updatedItem
 
         setItems(items, for: category)
 
@@ -262,6 +302,7 @@ final class MenuViewModel {
 
         copy.id = UUID()
         copy.name += " Copy"
+        copy.sortOrder = items(for: category).count
 
         var items = items(for: category)
         items.append(copy)
@@ -271,7 +312,63 @@ final class MenuViewModel {
         return copy
 
     }
+    @discardableResult
+    func duplicateCategory(
+        _ category: LunchCategory
+    ) -> LunchCategory {
 
+        var copy = category
+
+        copy.id = UUID()
+        copy.name += " Copy"
+
+        for index in copy.items.indices {
+            copy.items[index].id = UUID()
+            copy.items[index].sortOrder = index
+        }
+
+        categories.append(copy)
+
+        save()
+
+        return copy
+
+    }
+    
+    var totalMenuItems: Int {
+
+        categories.reduce(0) { total, category in
+            total + category.items.count
+        }
+
+    }
+
+    var activeMenuItems: Int {
+
+        categories.reduce(0) { total, category in
+            total + category.items.filter(\.isActive).count
+        }
+
+    }
+
+    var featuredMenuItems: Int {
+
+        categories.reduce(0) { total, category in
+            total + category.items.filter(\.isFeatured).count
+        }
+
+    }
+
+    var averageSellPrice: Double {
+
+        let items = categories.flatMap(\.items)
+
+        guard !items.isEmpty else { return 0 }
+
+        return items.reduce(0) { $0 + $1.price } / Double(items.count)
+
+    }
+    
     // MARK: - Persistence
 
     func save() {

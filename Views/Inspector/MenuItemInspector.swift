@@ -40,6 +40,9 @@ struct MenuItemInspector: View {
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(3...6)
 
+                    TextField("Category", text: $item.category)
+                        .textFieldStyle(.roundedBorder)
+
                 }
 
                 // MARK: Pricing
@@ -99,7 +102,22 @@ struct MenuItemInspector: View {
 
                     Toggle("Active", isOn: $item.isActive)
 
+                    Toggle("Sold Out", isOn: $item.isSoldOut)
+
                     Toggle("Featured", isOn: $item.isFeatured)
+                    
+                    Divider()
+
+                    HStack {
+
+                        Text("Last Edited")
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        Text(item.lastEdited, style: .date)
+
+                    }
 
                 }
 

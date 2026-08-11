@@ -3,6 +3,7 @@ import Foundation
 struct LunchCategory: Identifiable, Hashable, Codable {
 
     var id = UUID()
+    var sortOrder: Int = 0
     var name: String
     var icon: String
     var items: [LunchMenuItem]

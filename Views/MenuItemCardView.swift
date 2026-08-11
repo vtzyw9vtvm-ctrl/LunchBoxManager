@@ -37,8 +37,35 @@ struct MenuItemCardView: View {
 
             VStack(alignment: .leading, spacing: 8) {
 
-                Text(item.name)
-                    .font(.headline)
+                HStack {
+
+                    Text(item.name)
+                        .font(.headline)
+
+                    if item.isFeatured {
+
+                        Image(systemName: "star.fill")
+                            .foregroundStyle(.yellow)
+
+                    }
+
+                    Spacer()
+
+                    if item.isSoldOut {
+
+                        Text("SOLD OUT")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.red)
+
+                    } else if item.isActive {
+
+                        Text("ACTIVE")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.green)
+
+                    }
+
+                }
 
                 Text(item.description)
                     .foregroundStyle(.secondary)
@@ -55,22 +82,35 @@ struct MenuItemCardView: View {
                     Text("Cost $\(item.costPrice, specifier: "%.2f")")
                         .foregroundStyle(.secondary)
 
-                    Text("Profit $\(item.price - item.costPrice, specifier: "%.2f")")
-                        .foregroundStyle(.green)
+                    let profit = item.price - item.costPrice
+                    let margin = item.price > 0 ? (profit / item.price) * 100 : 0
+
+                    VStack(alignment: .trailing, spacing: 2) {
+
+                        Text("Profit $\(profit, specifier: "%.2f")")
+
+                        Text("\(margin, specifier: "%.0f")%")
+                            .font(.caption2)
+
+                    }
+                    .foregroundStyle(
+                        profit < 0 ? .red :
+                        profit < 2 ? .orange :
+                        .green
+                    )
 
                 }
 
             }
 
-            Spacer()
+            VStack {
 
-            if item.isActive {
+                DragHandle()
 
-                Text("ACTIVE")
-                    .font(.caption.bold())
-                    .foregroundStyle(.green)
+                Spacer()
 
             }
+            .frame(width: 28)
 
         }
         .padding(16)
@@ -93,36 +133,21 @@ struct MenuItemCardView: View {
 
         .contextMenu {
 
-
-                Button {
-                    onDuplicate?()
-                } label: {
-                    Label("Duplicate", systemImage: "plus.square.on.square")
-                }
-
-                Divider()
-
-                Button {
-                    onMoveUp?()
-                } label: {
-                    Label("Move Up", systemImage: "arrow.up")
-                }
-
-                Button {
-                    onMoveDown?()
-                } label: {
-                    Label("Move Down", systemImage: "arrow.down")
-                }
-
-                Divider()
-
-                Button(role: .destructive) {
-                    onDelete?()
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-
+            Button {
+                onDuplicate?()
+            } label: {
+                Label("Duplicate", systemImage: "plus.square.on.square")
             }
+
+            Divider()
+
+            Button(role: .destructive) {
+                onDelete?()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+
+        }
 
         .animation(.easeInOut(duration: 0.18), value: isSelected)
 

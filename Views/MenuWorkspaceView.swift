@@ -6,6 +6,8 @@ struct MenuWorkspaceView: View {
     
     @State private var selectedCategory: LunchCategory?
     @State private var selectedItemID: UUID?
+    @State private var searchText = ""
+    @State private var showInactive = true
     @State private var showDeleteCategoryConfirmation = false
     @State private var categoryPendingDeletion: LunchCategory?
     @State private var showDeleteItemConfirmation = false
@@ -25,6 +27,39 @@ struct MenuWorkspaceView: View {
                     systemImage: "plus"
                 ) {
                     
+                    VStack(spacing: 6) {
+
+                        HStack {
+
+                            Label("\(menuManager.totalMenuItems)", systemImage: "fork.knife")
+
+                            Spacer()
+
+                            Label("\(menuManager.activeMenuItems)", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+
+                            Label("\(menuManager.featuredMenuItems)", systemImage: "star.fill")
+                                .foregroundStyle(.yellow)
+
+                        }
+
+                        HStack {
+
+                            Text("Average")
+
+                            Spacer()
+
+                            Text("$\(menuManager.averageSellPrice, specifier: "%.2f")")
+                                .bold()
+
+                        }
+
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+
+                    Divider()
+                    
                     let category = menuManager.addCategory()
                     
                     selectedCategory = category
@@ -32,7 +67,6 @@ struct MenuWorkspaceView: View {
                     
                 }
                 
-                Divider()
                 
                 List(menuManager.categories,
                      selection: $selectedCategory) { category in
@@ -66,6 +100,17 @@ struct MenuWorkspaceView: View {
                         } label: {
 
                             Label("New Category", systemImage: "plus")
+
+                        }
+                        
+                        Button {
+
+                            let copy = menuManager.duplicateCategory(category)
+                            selectedCategory = copy
+
+                        } label: {
+
+                            Label("Duplicate Category", systemImage: "plus.square.on.square")
 
                         }
 
@@ -109,77 +154,115 @@ struct MenuWorkspaceView: View {
                 }
                 
                 Divider()
+
+                HStack {
+
+                    TextField("Search menu…", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+
+                    Toggle("Show Inactive", isOn: $showInactive)
+                        .toggleStyle(.switch)
+
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
+                Divider()
                 
                 if let category = selectedCategory {
-                    
-                    List {
 
-                        ForEach(menuManager.items(for: category)) { item in
+                    ReorderableList(
+                        items: menuManager.items(for: category)
+                            .filter {
 
-                            MenuItemCardView(
-                                item: item,
-                                isSelected: selectedItemID == item.id,
+                                (showInactive || $0.isActive) &&
 
-                                onDuplicate: {
+                                (
 
-                                    guard let category = selectedCategory else { return }
+                                    searchText.isEmpty ||
 
-                                    let copy = menuManager.duplicateItem(
-                                        item,
-                                        in: category
-                                    )
+                                    $0.name.localizedCaseInsensitiveContains(searchText) ||
 
-                                    selectedItemID = copy.id
+                                    $0.description.localizedCaseInsensitiveContains(searchText)
 
-                                },
+                                )
 
-                                onMoveUp: {
+                            },
+                        onMove: { itemID, index in
 
-                                    guard let category = selectedCategory else { return }
+                            guard let category = selectedCategory else { return }
 
-                                    menuManager.moveItemUp(
-                                        item,
-                                        in: category
-                                    )
-
-                                },
-
-                                onMoveDown: {
-
-                                    guard let category = selectedCategory else { return }
-
-                                    menuManager.moveItemDown(
-                                        item,
-                                        in: category
-                                    )
-
-                                },
-
-                                onDelete: {
-
-                                    itemPendingDeletion = item
-                                    showDeleteItemConfirmation = true
-
-                                }
+                            menuManager.moveItem(
+                                withId: itemID,
+                                to: index,
+                                in: category
                             )
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-
-                                withAnimation(.easeInOut(duration: 0.15)) {
-
-                                    selectedItemID = item.id
-
-                                }
-
-                            }
 
                         }
-                       
-
+                    ) { item in
+                        
+                        MenuItemCardView(
+                            item: item,
+                            isSelected: selectedItemID == item.id,
+                            
+                            onDuplicate: {
+                                
+                                guard let category = selectedCategory else { return }
+                                
+                                let copy = menuManager.duplicateItem(
+                                    item,
+                                    in: category
+                                )
+                                
+                                selectedItemID = copy.id
+                                
+                            },
+                            
+                            onMoveUp: {
+                                
+                                guard let category = selectedCategory else { return }
+                                
+                                menuManager.moveItemUp(
+                                    item,
+                                    in: category
+                                )
+                                
+                            },
+                            
+                            onMoveDown: {
+                                
+                                guard let category = selectedCategory else { return }
+                                
+                                menuManager.moveItemDown(
+                                    item,
+                                    in: category
+                                )
+                                
+                            },
+                            
+                            onDelete: {
+                                
+                                itemPendingDeletion = item
+                                showDeleteItemConfirmation = true
+                                
+                            }
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                
+                                selectedItemID = item.id
+                                
+                            }
+                            
+                        }
+                        
                     }
-                    .listStyle(.plain)
+
+                }
                     
-                } else {
+                 else {
                     
                     ContentUnavailableView(
                         "Select Category",
