@@ -326,7 +326,10 @@ struct CSVImportService: Sendable {
             return schoolClass
         }
 
-        let schoolClass = SchoolClass(name: className, yearLevel: className, schoolID: school.id)
+        let schoolClass = SchoolClass(
+            name: className,
+            schoolID: school.id
+        )
         cache[key] = schoolClass
         return schoolClass
     }

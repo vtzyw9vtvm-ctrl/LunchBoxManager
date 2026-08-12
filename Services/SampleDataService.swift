@@ -20,8 +20,13 @@ struct SampleDataService: Sendable {
             ("6B", "Year 6", 2)
         ]
 
-        let classes = classNames.map { name, yearLevel, schoolIndex in
-            SchoolClass(name: name, yearLevel: yearLevel, schoolID: schools[schoolIndex].id)
+        let classes = classNames.map { name, _, schoolIndex in
+
+            SchoolClass(
+                name: name,
+                schoolID: schools[schoolIndex].id
+            )
+
         }
 
         let names = [

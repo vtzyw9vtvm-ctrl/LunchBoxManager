@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SearchBar: View {
 
+    let placeholder: String
+
     @Binding var text: String
 
     var body: some View {
@@ -11,7 +13,7 @@ struct SearchBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search menu items...", text: $text)
+            TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
 
             if !text.isEmpty {
@@ -41,8 +43,12 @@ struct SearchBar: View {
 
 #Preview {
 
-    @Previewable @State var text = ""
+    @Previewable
+    @State var text = ""
 
-    SearchBar(text: $text)
+    SearchBar(
+        placeholder: "Search...",
+        text: $text
+    )
 
 }

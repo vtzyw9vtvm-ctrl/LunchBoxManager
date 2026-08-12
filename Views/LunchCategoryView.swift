@@ -28,7 +28,10 @@ struct LunchCategoryView: View {
 
         VStack(spacing: 16) {
 
-            SearchBar(text: $searchText)
+            SearchBar(
+                placeholder: "Search menu items...",
+                text: $searchText
+            )
 
             List {
 

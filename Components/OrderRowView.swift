@@ -43,7 +43,10 @@ private extension MenuItem {
 
 #Preview {
     let school = School(name: "North Primary School", shortName: "NPS")
-    let schoolClass = SchoolClass(name: "Year 3B", yearLevel: "Year 3B", schoolID: school.id)
+    let schoolClass = SchoolClass(
+        name: "3B",
+        schoolID: school.id
+    )
     let studentOrder = StudentOrder(
         student: Student(firstName: "Ava", lastName: "Nguyen", classID: schoolClass.id),
         schoolClass: schoolClass,

@@ -3,6 +3,7 @@ import SwiftUI
 struct StudentInspector: View {
 
     @Binding var student: Student
+    
 
     var body: some View {
 
