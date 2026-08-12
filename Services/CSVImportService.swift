@@ -483,7 +483,7 @@ private struct StudentOrderBuilder {
         let nameParts = studentName.split(separator: " ", maxSplits: 1).map(String.init)
         let firstName = nameParts.first ?? ""
         let lastName = nameParts.count > 1 ? nameParts[1] : ""
-        return Student(firstName: firstName, lastName: lastName, fullName: studentName, classID: classID)
+        return Student(firstName: firstName, lastName: lastName, classID: classID)
     }
 }
 

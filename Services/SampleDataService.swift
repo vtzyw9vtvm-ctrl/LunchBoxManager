@@ -40,7 +40,6 @@ struct SampleDataService: Sendable {
             return Student(
                 firstName: name.0,
                 lastName: name.1,
-                fullName: "\(name.0) \(name.1)",
                 classID: schoolClass.id
             )
         }

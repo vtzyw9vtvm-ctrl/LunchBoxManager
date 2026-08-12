@@ -45,7 +45,7 @@ private extension MenuItem {
     let school = School(name: "North Primary School", shortName: "NPS")
     let schoolClass = SchoolClass(name: "Year 3B", yearLevel: "Year 3B", schoolID: school.id)
     let studentOrder = StudentOrder(
-        student: Student(firstName: "Ava", lastName: "Nguyen", fullName: "Ava Nguyen", classID: schoolClass.id),
+        student: Student(firstName: "Ava", lastName: "Nguyen", classID: schoolClass.id),
         schoolClass: schoolClass,
         items: [MenuItem(name: "Chicken Wrap", category: "Lunch", variants: ["Tomato"], quantity: 2)]
     )
