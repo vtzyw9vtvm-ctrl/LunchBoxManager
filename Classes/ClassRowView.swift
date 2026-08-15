@@ -3,7 +3,7 @@ import SwiftUI
 struct ClassRowView: View {
 
     let schoolClass: SchoolClass
-
+    var studentCount: Int = 0
     var isSelected = false
 
     var body: some View {
@@ -16,7 +16,7 @@ struct ClassRowView: View {
 
             VStack(alignment: .leading, spacing: 4) {
 
-                Text(schoolClass.name)
+                Text("\(schoolClass.name) (\(studentCount))")
                     .font(.headline)
 
                 Text("School Class")
@@ -60,9 +60,10 @@ struct ClassRowView: View {
 
     ClassRowView(
         schoolClass: SchoolClass(
-            name: "3A",
+            name: "Prep Blue",
             schoolID: UUID()
-        )
+        ),
+        studentCount: 24
     )
 
 }

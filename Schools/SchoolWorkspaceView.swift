@@ -3,8 +3,11 @@ import SwiftUI
 struct SchoolsWorkspaceView: View {
 
     @State private var schoolsManager = SchoolsViewModel()
+    @State private var classesManager = ClassesViewModel()
+    @State private var studentsManager = StudentsViewModel()
 
     @State private var selectedSchool: School?
+    @State private var selectedClass: SchoolClass?
 
     @State private var searchText = ""
 
@@ -26,6 +29,8 @@ struct SchoolsWorkspaceView: View {
 
         HSplitView {
 
+            // MARK: - Schools
+
             VStack(spacing: 0) {
 
                 toolbar(
@@ -34,16 +39,19 @@ struct SchoolsWorkspaceView: View {
                 ) {
 
                     let school = schoolsManager.addSchool()
-
                     selectedSchool = school
+                    selectedClass = nil
 
                 }
 
                 Divider()
 
-                TextField("Search Schools...", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .padding()
+                TextField(
+                    "Search Schools...",
+                    text: $searchText
+                )
+                .textFieldStyle(.roundedBorder)
+                .padding()
 
                 List(
                     filteredSchools,
@@ -59,39 +67,77 @@ struct SchoolsWorkspaceView: View {
                 }
 
             }
-            .frame(minWidth: 300)
+            .frame(
+                minWidth: 300,
+                maxHeight: .infinity,
+                alignment: .top
+            )
+
+            // MARK: - School Setup
 
             Group {
 
                 if
                     let school = selectedSchool,
-                    let index = schoolsManager.schools.firstIndex(where: { $0.id == school.id })
+                    let index = schoolsManager.schools.firstIndex(
+                        where: { $0.id == school.id }
+                    )
                 {
 
-                    SchoolInspector(
+                    VStack(spacing: 0) {
 
-                        school: Binding(
-
-                            get: {
-
-                                schoolsManager.schools[index]
-
-                            },
-
-                            set: {
-
-                                schoolsManager.updateSchool($0)
-
-                            }
-
+                        SchoolInspector(
+                            school: Binding(
+                                get: {
+                                    schoolsManager.schools[index]
+                                },
+                                set: {
+                                    schoolsManager.updateSchool($0)
+                                }
+                            )
                         )
 
-                    )
+                        Divider()
 
-                }
+                        ClassListView(
+                            manager: classesManager,
+                            studentsManager: studentsManager,
+                            selectedSchool: Binding(
+                                get: {
+                                    schoolsManager.schools[index]
+                                },
+                                set: {
+                                    schoolsManager.updateSchool($0)
+                                }
+                            ),
+                            selectedClass: $selectedClass
+                        )
 
-                else {
+                        if
+                            let selectedClass,
+                            let classIndex = classesManager.classes.firstIndex(
+                                where: { $0.id == selectedClass.id }
+                            )
+                        {
 
+                            Divider()
+
+                            ClassInspector(
+                                schoolClass: Binding(
+                                    get: {
+                                        classesManager.classes[classIndex]
+                                    },
+                                    set: {
+                                        classesManager.updateClass($0)
+                                    }
+                                )
+                            )
+
+                        }
+
+                    }
+
+                    } else {
                     ContentUnavailableView(
                         "Select School",
                         systemImage: "building.2"
@@ -101,6 +147,19 @@ struct SchoolsWorkspaceView: View {
 
             }
             .frame(width: 420)
+
+        }
+        .onAppear {
+
+            if selectedSchool == nil {
+                selectedSchool = schoolsManager.schools.first
+            }
+
+        }
+        .onChange(of: selectedSchool) {
+
+            // Don't leave a class from the previous school selected.
+            selectedClass = nil
 
         }
 

@@ -7,6 +7,7 @@ struct SidebarView: View {
         case dashboard
         case menu
         case modifiers
+        case schools
         case schoolOrders
         case cafe
         case inventory
@@ -37,6 +38,9 @@ struct SidebarView: View {
 
                     Label("Modifier Groups", systemImage: "slider.horizontal.3")
                         .tag(Destination.modifiers)
+                    
+                    Label("Schools", systemImage: "building.2")
+                        .tag(Destination.schools)
 
                 }
 
@@ -80,6 +84,9 @@ struct SidebarView: View {
 
             case .modifiers:
                 ModifierWorkspaceView()
+                
+            case .schools:
+                SchoolsWorkspaceView()
 
             case .schoolOrders:
                 Text("School Orders")
