@@ -4,6 +4,9 @@ import SwiftUI
 struct OrdersView: View {
     @State private var viewModel: OrdersViewModel
     private let orders: [LunchOrder]
+    
+    private let labelGenerationService = LabelGenerationService()
+    private let labelPrintService = LabelPrintService()
 
     init(orders: [LunchOrder]) {
         self.orders = orders
@@ -12,6 +15,13 @@ struct OrdersView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            dateSelector
+            deliveryDayHeader
+
+            if viewModel.dateView == .today {
+                productionActions
+            }
+
             toolbar
             summaryStatistics
             ordersTable
@@ -19,12 +29,173 @@ struct OrdersView: View {
         }
         .padding(20)
         .navigationTitle("Orders")
-        .searchable(text: $viewModel.searchText, prompt: "Student, order number, or menu item")
-        .onChange(of: orders) { _, newOrders in
-            viewModel.updateOrders(newOrders)
-        }
+        .searchable(
+            text: $viewModel.searchText,
+            prompt: "Student, order number, or menu item"
+        )
     }
+    private var dateSelector: some View {
 
+        HStack {
+
+            Text("School Orders")
+                .font(.largeTitle.bold())
+
+            Spacer()
+
+            Picker("Orders", selection: $viewModel.dateView) {
+
+                ForEach(OrdersDateView.allCases) { option in
+                    Text(option.rawValue)
+                        .tag(option)
+                }
+
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 360)
+
+        }
+
+    }
+    private var deliveryDayHeader: some View {
+
+        HStack {
+
+            VStack(alignment: .leading, spacing: 4) {
+
+                switch viewModel.dateView {
+
+                case .today:
+
+                    Text("Today's Lunch Orders")
+                        .font(.title2.bold())
+
+                    Text(
+                        Date.now.formatted(
+                            .dateTime
+                                .weekday(.wide)
+                                .day()
+                                .month(.wide)
+                                .year()
+                        )
+                    )
+                    .foregroundStyle(.secondary)
+
+                case .upcoming:
+
+                    Text("Upcoming Lunch Orders")
+                        .font(.title2.bold())
+
+                    Text("Orders for future delivery dates")
+                        .foregroundStyle(.secondary)
+
+                case .history:
+
+                    Text("Order History")
+                        .font(.title2.bold())
+
+                    Text("Previous school lunch orders")
+                        .foregroundStyle(.secondary)
+
+                }
+
+            }
+
+            Spacer()
+
+            if viewModel.dateView == .today {
+
+                VStack(alignment: .trailing, spacing: 4) {
+
+                    Text("\(viewModel.totalStudents) Lunches")
+                        .font(.headline)
+
+                    Text("Ordering closes at 8:30 AM")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                }
+
+            }
+
+        }
+        .padding(.vertical, 4)
+
+    }
+    private var productionActions: some View {
+
+        HStack(spacing: 12) {
+            
+            Button("Select Unprinted") {
+                viewModel.selectUnprintedHotLabels()
+            }
+            .buttonStyle(.bordered)
+
+            Button("Select All") {
+                viewModel.selectAllVisible()
+            }
+            .buttonStyle(.bordered)
+
+            Button("Clear") {
+                viewModel.clearPrintSelection()
+            }
+            .buttonStyle(.bordered)
+
+            Divider()
+                .frame(height: 24)
+
+            Button {
+
+                let labels = labelGenerationService.makeHotLabels(
+                    from: viewModel.selectedOrdersForPrinting
+                )
+
+                let document = labelGenerationService.makePDFDocument(
+                    for: labels
+                )
+
+                let didPrint = labelPrintService.printLabels(
+                    document: document,
+                    jobTitle: "Hot Lunch Labels"
+                )
+
+                if didPrint {
+                    viewModel.markSelectedHotLabelsPrinted()
+                }
+
+            } label: {
+
+                Label(
+                    "Hot Labels (\(viewModel.selectedPrintCount))",
+                    systemImage: "flame.fill"
+                )
+
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(viewModel.selectedPrintCount == 0)
+
+            Button {
+                // Cold label printing will be connected next
+            } label: {
+                Label("Cold Labels", systemImage: "snowflake")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+
+            Button {
+                // Run sheet printing will be connected next
+            } label: {
+                Label("Run Sheets", systemImage: "checklist")
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+
+            Spacer()
+
+        }
+
+    }
     private var toolbar: some View {
         HStack(spacing: 12) {
             Picker("School", selection: $viewModel.selectedSchool) {
@@ -64,8 +235,48 @@ struct OrdersView: View {
 
     private var ordersTable: some View {
         Table(viewModel.filteredRows, selection: $viewModel.selectedRowID) {
+            TableColumn("") { row in
+
+                Button {
+
+                    viewModel.togglePrintSelection(row)
+
+                } label: {
+
+                    Image(
+                        systemName: viewModel.selectedPrintRowIDs.contains(row.id)
+                            ? "checkmark.square.fill"
+                            : "square"
+                    )
+                    .font(.system(size: 16))
+
+                }
+                .buttonStyle(.plain)
+
+            }
+            .width(28)
             TableColumn("Order Number") { row in
                 Text(row.orderNumber)
+            }
+
+            TableColumn("Printed") { row in
+
+                if row.studentOrder.hotLabelPrinted {
+
+                    Label("Hot", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+
+                } else {
+
+                    Text("—")
+                        .foregroundStyle(.secondary)
+
+                }
+            }
+            .width(70)
+
+            TableColumn("Student") { row in
+                Text(row.studentOrder.student.fullName)
             }
             TableColumn("Student") { row in
                 Text(row.studentOrder.student.fullName)

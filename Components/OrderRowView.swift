@@ -59,6 +59,7 @@ private extension MenuItem {
             orderNumber: "1001",
             school: school,
             orderDate: Date(),
+            deliveryDate: Date(),
             notes: "Deliver to office",
             studentOrder: studentOrder
         )

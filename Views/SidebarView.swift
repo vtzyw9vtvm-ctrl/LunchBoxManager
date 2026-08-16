@@ -89,7 +89,9 @@ struct SidebarView: View {
                 SchoolsWorkspaceView()
 
             case .schoolOrders:
-                Text("School Orders")
+                OrdersView(
+                    orders: SampleDataService().makeSampleImport().orders
+                )
 
             case .cafe:
                 Text("Cafe")
