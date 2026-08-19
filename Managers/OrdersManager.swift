@@ -8,6 +8,9 @@ final class OrdersManager {
     // MARK: - Storage
 
     private let storageKey = "LunchBoxManager.Orders"
+    // Temporary development setting.
+    // Change this to false when real parent-app orders are connected.
+    private let useSampleData = true
 
 
     // MARK: - Orders
@@ -23,15 +26,22 @@ final class OrdersManager {
            !savedOrders.isEmpty {
 
             orders = savedOrders
+            return
+        }
 
-        } else {
+        if useSampleData {
 
-            // Temporary sample data while developing.
+            // Development only.
             orders = SampleDataService()
                 .makeSampleImport()
                 .orders
 
             saveOrders()
+
+        } else {
+
+            // Real app with no orders yet.
+            orders = []
         }
     }
 
@@ -80,7 +90,56 @@ final class OrdersManager {
         saveOrders()
     }
 
+    // MARK: - Sync Incoming Orders
 
+    func syncIncomingOrders(_ incomingOrders: [LunchOrder]) {
+
+        for incomingOrder in incomingOrders {
+
+            if let existingIndex = orders.firstIndex(
+                where: { $0.id == incomingOrder.id }
+            ) {
+
+                // This order already exists.
+                // Preserve our local printing status.
+                var updatedOrder = incomingOrder
+
+                for studentIndex in updatedOrder.studentOrders.indices {
+
+                    let incomingStudentOrderID =
+                        updatedOrder.studentOrders[studentIndex].id
+
+                    if let existingStudentOrder =
+                        orders[existingIndex]
+                            .studentOrders
+                            .first(where: {
+                                $0.id == incomingStudentOrderID
+                            }) {
+
+                        updatedOrder
+                            .studentOrders[studentIndex]
+                            .hotLabelPrinted =
+                                existingStudentOrder.hotLabelPrinted
+
+                        updatedOrder
+                            .studentOrders[studentIndex]
+                            .coldLabelPrinted =
+                                existingStudentOrder.coldLabelPrinted
+                    }
+                }
+
+                orders[existingIndex] = updatedOrder
+
+            } else {
+
+                // Completely new order.
+                orders.append(incomingOrder)
+            }
+        }
+
+        saveOrders()
+    }
+    
     // MARK: - Save
 
     func saveOrders() {

@@ -16,7 +16,7 @@ struct SidebarView: View {
 
     }
 
-    @State private var selection: Destination? = .menu
+    @State private var selection: Destination? = .dashboard
     @State private var ordersManager = OrdersManager()
 
     var body: some View {
@@ -78,7 +78,9 @@ struct SidebarView: View {
             switch selection {
 
             case .dashboard:
-                Text("Dashboard")
+                DashboardView(
+                    orders: ordersManager.orders
+                )
 
             case .menu:
                 MenuWorkspaceView()
