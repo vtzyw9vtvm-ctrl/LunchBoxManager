@@ -7,6 +7,8 @@ struct OrdersView: View {
     
     private let labelGenerationService = LabelGenerationService()
     private let labelPrintService = LabelPrintService()
+    private let kitchenProductionListService = KitchenProductionListService()
+    private let pastaPreparationReportService = PastaPreparationReportService()
 
     init(orders: [LunchOrder]) {
         self.orders = orders
@@ -145,6 +147,8 @@ struct OrdersView: View {
                 .frame(height: 24)
 
             Button {
+                
+                viewModel.selectUnprintedHotLabels()
 
                 let labels = labelGenerationService.makeHotLabels(
                     from: viewModel.selectedOrdersForPrinting
@@ -166,31 +170,94 @@ struct OrdersView: View {
             } label: {
 
                 Label(
-                    "Hot Labels (\(viewModel.selectedPrintCount))",
+                    "Hot Labels (\(viewModel.unprintedHotLabelCount))",
                     systemImage: "flame.fill"
                 )
 
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(viewModel.selectedPrintCount == 0)
 
             Button {
-                // Cold label printing will be connected next
+
+                viewModel.selectUnprintedColdLabels()
+
+                let labels = labelGenerationService.makeColdLabels(
+                    from: viewModel.selectedOrdersForPrinting
+                )
+
+                let document = labelGenerationService.makePDFDocument(
+                    for: labels
+                )
+
+                let didPrint = labelPrintService.printLabels(
+                    document: document,
+                    jobTitle: "Cold Lunch Labels"
+                )
+
+                if didPrint {
+                    viewModel.markSelectedColdLabelsPrinted()
+                }
+
             } label: {
-                Label("Cold Labels", systemImage: "snowflake")
+
+                Label(
+                    "Cold Labels (\(viewModel.unprintedColdLabelCount))",
+                    systemImage: "snowflake"
+                )
+
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
 
             Button {
-                // Run sheet printing will be connected next
+
+                let reports = kitchenProductionListService.makeReports(
+                    from: viewModel.runSheetOrders
+                )
+
+                for report in reports {
+
+                    labelPrintService.printDocument(
+                        document: report.document,
+                        jobTitle: "\(report.schoolName) Run Sheet"
+                    )
+                }
+
             } label: {
-                Label("Run Sheets", systemImage: "checklist")
+
+                Label(
+                    "Run Sheets",
+                    systemImage: "checklist"
+                )
+
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
+            Button {
 
+                let reports = pastaPreparationReportService.makeReports(
+                    from: viewModel.pastaReportOrders
+                )
+
+                for report in reports {
+
+                    labelPrintService.printDocument(
+                        document: report.document,
+                        jobTitle: report.reportName
+                    )
+                }
+
+            } label: {
+
+                Label(
+                    "Pasta Report",
+                    systemImage: "fork.knife"
+                )
+
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
             Spacer()
 
         }
@@ -261,19 +328,32 @@ struct OrdersView: View {
 
             TableColumn("Printed") { row in
 
-                if row.studentOrder.hotLabelPrinted {
+                HStack(spacing: 8) {
 
-                    Label("Hot", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                    if row.studentOrder.hotLabelPrinted {
 
-                } else {
+                        Label("Hot", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
 
-                    Text("—")
-                        .foregroundStyle(.secondary)
+                    }
 
+                    if row.studentOrder.coldLabelPrinted {
+
+                        Label("Cold", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.blue)
+
+                    }
+
+                    if !row.studentOrder.hotLabelPrinted &&
+                        !row.studentOrder.coldLabelPrinted {
+
+                        Text("—")
+                            .foregroundStyle(.secondary)
+
+                    }
                 }
             }
-            .width(70)
+            .width(min: 80, ideal: 130)
 
             TableColumn("Student") { row in
                 Text(row.studentOrder.student.fullName)

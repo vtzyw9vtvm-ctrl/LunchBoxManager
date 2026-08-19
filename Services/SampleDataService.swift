@@ -131,7 +131,36 @@ struct SampleDataService: Sendable {
         let schoolClass = classes.first { $0.id == student.classID }
         let firstItem = menuItems[index % menuItems.count]
         let secondItem = menuItems[(index + 4) % menuItems.count]
-        let items = index.isMultiple(of: 3) ? [firstItem, secondItem] : [firstItem]
+        let bananaBread = menuItems.first {
+            $0.name == "Banana Bread"
+        }
+
+        let veggiePasta = menuItems.first {
+            $0.name == "Veggie Pasta"
+        }
+
+        let items: [MenuItem]
+
+        if index == 0 {
+
+            var testItems = [firstItem]
+
+            if let bananaBread {
+                testItems.append(bananaBread)
+            }
+
+            if let veggiePasta {
+                testItems.append(veggiePasta)
+            }
+
+            items = testItems
+
+        } else {
+
+            items = index.isMultiple(of: 3)
+                ? [firstItem, secondItem]
+                : [firstItem]
+        }
 
         return StudentOrder(
             student: student,

@@ -4,56 +4,115 @@ import PDFKit
 @MainActor
 final class LabelPrintService {
 
-@discardableResult
-func printLabels(
-    document: PDFDocument,
-    jobTitle: String = "Lunch Labels"
-) -> Bool {
+    // MARK: - Thermal Label Printing
 
-    guard document.pageCount > 0 else {
-        return false
+    @discardableResult
+    func printLabels(
+        document: PDFDocument,
+        jobTitle: String = "Lunch Labels"
+    ) -> Bool {
+
+        guard document.pageCount > 0 else {
+            return false
+        }
+
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+
+        let labelSize = LabelGenerationService.labelSize
+
+        printInfo.paperSize = labelSize
+
+        printInfo.leftMargin = 0
+        printInfo.rightMargin = 0
+        printInfo.topMargin = 0
+        printInfo.bottomMargin = 0
+
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .fit
+
+        printInfo.isHorizontallyCentered = false
+        printInfo.isVerticallyCentered = false
+
+        // Always default label jobs to one copy
+        printInfo.dictionary()[NSPrintInfo.AttributeKey.copies] = 1
+
+        let printView = PDFPrintView(
+            document: document,
+            pageSize: labelSize
+        )
+
+        let operation = NSPrintOperation(
+            view: printView,
+            printInfo: printInfo
+        )
+
+        operation.jobTitle = jobTitle
+        operation.showsPrintPanel = true
+        operation.showsProgressPanel = true
+
+        return operation.run()
     }
 
-    let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
 
-    let labelSize = LabelGenerationService.labelSize
+    // MARK: - A4 Document Printing
 
-    printInfo.paperSize = labelSize
+    @discardableResult
+    func printDocument(
+        document: PDFDocument,
+        jobTitle: String = "Run Sheet"
+    ) -> Bool {
 
-    printInfo.leftMargin = 0
-    printInfo.rightMargin = 0
-    printInfo.topMargin = 0
-    printInfo.bottomMargin = 0
+        guard document.pageCount > 0 else {
+            return false
+        }
 
-    printInfo.horizontalPagination = .fit
-    printInfo.verticalPagination = .fit
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
 
-    printInfo.isHorizontallyCentered = false
-    printInfo.isVerticallyCentered = false
+        // A4 portrait
+        let a4Size = NSSize(
+            width: 595.2,
+            height: 841.8
+        )
 
-    // Always default label jobs to one copy
-    printInfo.dictionary()[NSPrintInfo.AttributeKey.copies] = 1
+        printInfo.paperSize = a4Size
+        printInfo.orientation = .portrait
 
-    let printView = LabelPDFPrintView(
-        document: document,
-        pageSize: labelSize
-    )
+        printInfo.leftMargin = 0
+        printInfo.rightMargin = 0
+        printInfo.topMargin = 0
+        printInfo.bottomMargin = 0
 
-    let operation = NSPrintOperation(
-        view: printView,
-        printInfo: printInfo
-    )
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .fit
 
-    operation.jobTitle = jobTitle
-    operation.showsPrintPanel = true
-    operation.showsProgressPanel = true
+        printInfo.isHorizontallyCentered = true
+        printInfo.isVerticallyCentered = true
 
-    return operation.run()
+        // Always default run sheets to one copy
+        printInfo.dictionary()[NSPrintInfo.AttributeKey.copies] = 1
+
+        let printView = PDFPrintView(
+            document: document,
+            pageSize: a4Size
+        )
+
+        let operation = NSPrintOperation(
+            view: printView,
+            printInfo: printInfo
+        )
+
+        operation.jobTitle = jobTitle
+        operation.showsPrintPanel = true
+        operation.showsProgressPanel = true
+
+        return operation.run()
+    }
 }
+
 
 // MARK: - PDF Printing View
 
-private final class LabelPDFPrintView: NSView {
+private final class PDFPrintView: NSView {
 
     private let document: PDFDocument
     private let pageSize: NSSize
@@ -132,7 +191,6 @@ private final class LabelPDFPrintView: NSView {
 
         context.saveGState()
 
-        // Move drawing into the current label's position
         let pageOriginY = CGFloat(pageIndex) * pageSize.height
 
         context.translateBy(
@@ -152,5 +210,4 @@ private final class LabelPDFPrintView: NSView {
 
         context.restoreGState()
     }
-}
 }

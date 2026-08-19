@@ -65,6 +65,69 @@ final class OrdersViewModel {
             )
         }
     }
+    var runSheetOrders: [LunchOrder] {
+
+        let rows = flattenedRows
+            .filter {
+                matchesDate($0) &&
+                matchesSearch($0) &&
+                matchesSchool($0)
+            }
+
+        let rowsByOrder = Dictionary(
+            grouping: rows,
+            by: \.orderID
+        )
+
+        return orders.compactMap { order in
+
+            guard let rows = rowsByOrder[order.id] else {
+                return nil
+            }
+
+            return LunchOrder(
+                id: order.id,
+                orderNumber: order.orderNumber,
+                school: order.school,
+                studentOrders: rows.map(\.studentOrder),
+                orderDate: order.orderDate,
+                deliveryDate: order.deliveryDate,
+                status: order.status,
+                notes: order.notes
+            )
+        }
+    }
+    
+    var pastaReportOrders: [LunchOrder] {
+
+        let rows = flattenedRows
+            .filter {
+                matchesDate($0)
+            }
+
+        let rowsByOrder = Dictionary(
+            grouping: rows,
+            by: \.orderID
+        )
+
+        return orders.compactMap { order in
+
+            guard let rows = rowsByOrder[order.id] else {
+                return nil
+            }
+
+            return LunchOrder(
+                id: order.id,
+                orderNumber: order.orderNumber,
+                school: order.school,
+                studentOrders: rows.map(\.studentOrder),
+                orderDate: order.orderDate,
+                deliveryDate: order.deliveryDate,
+                status: order.status,
+                notes: order.notes
+            )
+        }
+    }
 
     var selectedOrdersForPrinting: [LunchOrder] {
 
@@ -160,6 +223,43 @@ final class OrdersViewModel {
         )
     }
 
+    func selectUnprintedColdLabels() {
+
+        let labelService = LabelGenerationService()
+
+        selectedPrintRowIDs = Set(
+            filteredRows
+                .filter { row in
+
+                    guard !row.studentOrder.coldLabelPrinted else {
+                        return false
+                    }
+
+                    guard let order = orders.first(
+                        where: { $0.id == row.orderID }
+                    ) else {
+                        return false
+                    }
+
+                    let singleStudentOrder = LunchOrder(
+                        id: order.id,
+                        orderNumber: order.orderNumber,
+                        school: order.school,
+                        studentOrders: [row.studentOrder],
+                        orderDate: order.orderDate,
+                        deliveryDate: order.deliveryDate,
+                        status: order.status,
+                        notes: order.notes
+                    )
+
+                    return !labelService
+                        .makeColdLabels(from: [singleStudentOrder])
+                        .isEmpty
+                }
+                .map(\.id)
+        )
+    }
+
     func clearPrintSelection() {
 
         selectedPrintRowIDs.removeAll()
@@ -171,6 +271,46 @@ final class OrdersViewModel {
             selectedPrintRowIDs.contains($0.id)
         }.count
     }
+    var unprintedHotLabelCount: Int {
+
+        filteredRows.filter {
+            !$0.studentOrder.hotLabelPrinted
+        }.count
+    }
+    var unprintedColdLabelCount: Int {
+
+        let labelService = LabelGenerationService()
+
+        return filteredRows.filter { row in
+
+            guard !row.studentOrder.coldLabelPrinted else {
+                return false
+            }
+
+            guard let order = orders.first(
+                where: { $0.id == row.orderID }
+            ) else {
+                return false
+            }
+
+            let singleStudentOrder = LunchOrder(
+                id: order.id,
+                orderNumber: order.orderNumber,
+                school: order.school,
+                studentOrders: [row.studentOrder],
+                orderDate: order.orderDate,
+                deliveryDate: order.deliveryDate,
+                status: order.status,
+                notes: order.notes
+            )
+
+            return !labelService
+                .makeColdLabels(from: [singleStudentOrder])
+                .isEmpty
+        }
+        .count
+    }
+
     func markSelectedHotLabelsPrinted() {
 
         guard !selectedPrintRowIDs.isEmpty else {
@@ -189,6 +329,31 @@ final class OrdersViewModel {
                     orders[orderIndex]
                         .studentOrders[studentIndex]
                         .hotLabelPrinted = true
+                }
+            }
+        }
+
+        selectedPrintRowIDs.removeAll()
+    }
+
+    func markSelectedColdLabelsPrinted() {
+
+        guard !selectedPrintRowIDs.isEmpty else {
+            return
+        }
+
+        for orderIndex in orders.indices {
+
+            for studentIndex in orders[orderIndex].studentOrders.indices {
+
+                let studentOrderID =
+                    orders[orderIndex].studentOrders[studentIndex].id
+
+                if selectedPrintRowIDs.contains(studentOrderID) {
+
+                    orders[orderIndex]
+                        .studentOrders[studentIndex]
+                        .coldLabelPrinted = true
                 }
             }
         }
