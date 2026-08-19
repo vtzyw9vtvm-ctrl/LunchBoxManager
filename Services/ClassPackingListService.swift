@@ -95,44 +95,84 @@ struct ClassPackingListService {
         renderer.endPage()
     }
 
-    private func drawHeader(_ page: ClassPackingPage, schoolName: String, date: Date, renderer: ReportPDFRenderer) {
+    private func drawHeader(
+        _ page: ClassPackingPage,
+        schoolName: String,
+        date: Date,
+        renderer: ReportPDFRenderer
+    ) {
+
         let contentRect = renderer.contentRect
-        renderer.setY(
-            renderer.drawText(
-                schoolName,
-                font: .boldSystemFont(ofSize: 13),
-                color: .secondaryLabelColor,
-                rect: CGRect(x: contentRect.minX, y: renderer.y - 18, width: contentRect.width, height: 18)
+        let halfWidth = contentRect.width / 2
+
+        // First row:
+        // CLASS on left / SCHOOL on right
+
+        let firstRowHeight: CGFloat = 28
+        let firstRowY = renderer.y - firstRowHeight
+
+        renderer.drawText(
+            page.className,
+            font: .boldSystemFont(ofSize: 24),
+            rect: CGRect(
+                x: contentRect.minX,
+                y: firstRowY,
+                width: halfWidth,
+                height: firstRowHeight
             )
         )
-        renderer.moveDown(2)
-        renderer.setY(
-            renderer.drawText(
-                page.className,
-                font: .boldSystemFont(ofSize: 26),
-                rect: CGRect(x: contentRect.minX, y: renderer.y - 34, width: contentRect.width, height: 34)
+
+        renderer.drawText(
+            schoolName,
+            font: .boldSystemFont(ofSize: 11),
+            color: .secondaryLabelColor,
+            alignment: .right,
+            rect: CGRect(
+                x: contentRect.minX + halfWidth,
+                y: firstRowY + 5,
+                width: halfWidth,
+                height: 18
             )
         )
-        renderer.moveDown(2)
-        renderer.setY(
-            renderer.drawText(
-                reportDateFormatter.string(from: date),
-                font: .systemFont(ofSize: 10),
-                color: .secondaryLabelColor,
-                rect: CGRect(x: contentRect.minX, y: renderer.y - 14, width: contentRect.width, height: 14)
+
+        renderer.moveDown(firstRowHeight)
+
+
+        // Second row:
+        // TOTALS on left / DATE on right
+
+        let secondRowHeight: CGFloat = 15
+        let secondRowY = renderer.y - secondRowHeight
+
+        renderer.drawText(
+            "Orders: \(page.totalOrders)   Students: \(page.totalStudents)",
+            font: .boldSystemFont(ofSize: 9.5),
+            rect: CGRect(
+                x: contentRect.minX,
+                y: secondRowY,
+                width: halfWidth,
+                height: secondRowHeight
             )
         )
-        renderer.moveDown(6)
-        renderer.setY(
-            renderer.drawText(
-                "Total Orders: \(page.totalOrders)    Total Students: \(page.totalStudents)",
-                font: .boldSystemFont(ofSize: 10),
-                rect: CGRect(x: contentRect.minX, y: renderer.y - 14, width: contentRect.width, height: 14)
+
+        renderer.drawText(
+            reportDateFormatter.string(from: date),
+            font: .systemFont(ofSize: 9.5),
+            color: .secondaryLabelColor,
+            alignment: .right,
+            rect: CGRect(
+                x: contentRect.minX + halfWidth,
+                y: secondRowY,
+                width: halfWidth,
+                height: secondRowHeight
             )
         )
-        renderer.moveDown(7)
+
+        renderer.moveDown(secondRowHeight)
+
+        renderer.moveDown(3)
         renderer.drawDivider(y: renderer.y)
-        renderer.moveDown(8)
+        renderer.moveDown(5)
     }
 
     private func drawTableHeader(renderer: ReportPDFRenderer) {
@@ -172,7 +212,7 @@ struct ClassPackingListService {
 
         let headingFont = NSFont.boldSystemFont(ofSize: 13.5)
         let itemFont = NSFont.systemFont(ofSize: 11.5)
-        let lineHeight: CGFloat = 15
+        let lineHeight: CGFloat = 14
         let headingHeight: CGFloat = 17
         let gapAbove: CGFloat = 7
         let headingGap: CGFloat = 2
@@ -228,7 +268,7 @@ struct ClassPackingListService {
     private func height(for item: ClassPackingItem, renderer: ReportPDFRenderer) -> CGFloat {
         let columns = tableColumns(in: renderer.contentRect)
         let extrasHeight = measuredHeight(item.extras, font: .systemFont(ofSize: 7.5), width: columns.extras.width)
-        return max(11, ceil(extrasHeight) + 3)
+        return max(10, ceil(extrasHeight) + 3)
     }
 
     private func tableColumns(in contentRect: CGRect) -> ClassPackingColumns {

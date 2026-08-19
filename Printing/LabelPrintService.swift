@@ -88,12 +88,67 @@ final class LabelPrintService {
         printInfo.isHorizontallyCentered = true
         printInfo.isVerticallyCentered = true
 
-        // Always default run sheets to one copy
+        // Always default documents to one copy
         printInfo.dictionary()[NSPrintInfo.AttributeKey.copies] = 1
 
         let printView = PDFPrintView(
             document: document,
             pageSize: a4Size
+        )
+
+        let operation = NSPrintOperation(
+            view: printView,
+            printInfo: printInfo
+        )
+
+        operation.jobTitle = jobTitle
+        operation.showsPrintPanel = true
+        operation.showsProgressPanel = true
+
+        return operation.run()
+    }
+
+
+    // MARK: - A5 Document Printing
+
+    @discardableResult
+    func printA5Document(
+        document: PDFDocument,
+        jobTitle: String = "Class Packing List"
+    ) -> Bool {
+
+        guard document.pageCount > 0 else {
+            return false
+        }
+
+        let printInfo = NSPrintInfo.shared.copy() as! NSPrintInfo
+
+        // A5 portrait - 148mm x 210mm
+        let a5Size = NSSize(
+            width: 419.53,
+            height: 595.28
+        )
+
+        printInfo.paperSize = a5Size
+        printInfo.orientation = .portrait
+
+        printInfo.leftMargin = 0
+        printInfo.rightMargin = 0
+        printInfo.topMargin = 0
+        printInfo.bottomMargin = 0
+
+        printInfo.horizontalPagination = .fit
+        printInfo.verticalPagination = .fit
+
+        printInfo.isHorizontallyCentered = true
+        printInfo.isVerticallyCentered = true
+
+        // Always default A5 documents to one copy
+        printInfo.dictionary()[NSPrintInfo.AttributeKey.copies] = 1
+
+        let printView = PDFPrintView(
+            document: document,
+            pageSize: a5Size
         )
 
         let operation = NSPrintOperation(

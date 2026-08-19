@@ -17,6 +17,7 @@ struct SidebarView: View {
     }
 
     @State private var selection: Destination? = .menu
+    @State private var ordersManager = OrdersManager()
 
     var body: some View {
 
@@ -90,7 +91,12 @@ struct SidebarView: View {
 
             case .schoolOrders:
                 OrdersView(
-                    orders: SampleDataService().makeSampleImport().orders
+                    orders: ordersManager.orders,
+                    onOrdersChanged: { updatedOrders in
+                        ordersManager.replaceOrders(
+                            with: updatedOrders
+                        )
+                    }
                 )
 
             case .cafe:

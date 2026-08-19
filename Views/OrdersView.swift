@@ -2,17 +2,31 @@ import SwiftUI
 
 /// Browse imported lunch orders before label generation.
 struct OrdersView: View {
+
     @State private var viewModel: OrdersViewModel
+
     private let orders: [LunchOrder]
+    private let onOrdersChanged: ([LunchOrder]) -> Void
     
     private let labelGenerationService = LabelGenerationService()
     private let labelPrintService = LabelPrintService()
     private let kitchenProductionListService = KitchenProductionListService()
     private let pastaPreparationReportService = PastaPreparationReportService()
+    private let classPackingListService = ClassPackingListService()
 
-    init(orders: [LunchOrder]) {
+    init(
+        orders: [LunchOrder],
+        onOrdersChanged: @escaping ([LunchOrder]) -> Void = { _ in }
+    ) {
+
         self.orders = orders
-        _viewModel = State(initialValue: OrdersViewModel(orders: orders))
+        self.onOrdersChanged = onOrdersChanged
+
+        _viewModel = State(
+            initialValue: OrdersViewModel(
+                orders: orders
+            )
+        )
     }
 
     var body: some View {
@@ -164,7 +178,8 @@ struct OrdersView: View {
                 )
 
                 if didPrint {
-                    viewModel.markSelectedHotLabelsPrinted()
+                    viewModel.markSelectedColdLabelsPrinted()
+                    onOrdersChanged(viewModel.allOrders)
                 }
 
             } label: {
@@ -180,7 +195,9 @@ struct OrdersView: View {
 
             Button {
 
-                viewModel.selectUnprintedColdLabels()
+                if viewModel.selectedPrintCount == 0 {
+                    viewModel.selectUnprintedColdLabels()
+                }
 
                 let labels = labelGenerationService.makeColdLabels(
                     from: viewModel.selectedOrdersForPrinting
@@ -197,6 +214,7 @@ struct OrdersView: View {
 
                 if didPrint {
                     viewModel.markSelectedColdLabelsPrinted()
+                    onOrdersChanged(viewModel.allOrders)
                 }
 
             } label: {
@@ -258,6 +276,30 @@ struct OrdersView: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.large)
+            Button {
+
+                let reports = classPackingListService.makeReports(
+                    from: viewModel.pastaReportOrders
+                )
+
+                for report in reports {
+
+                    labelPrintService.printA5Document(
+                        document: report.document,
+                        jobTitle: "\(report.schoolName) Class Packing List"
+                    )
+                }
+
+            } label: {
+
+                Label(
+                    "Class Packing Lists",
+                    systemImage: "list.clipboard"
+                )
+
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
             Spacer()
 
         }
@@ -301,7 +343,14 @@ struct OrdersView: View {
     }
 
     private var ordersTable: some View {
-        Table(viewModel.filteredRows, selection: $viewModel.selectedRowID) {
+
+        Table(
+            viewModel.filteredRows,
+            selection: $viewModel.selectedRowID
+        ) {
+
+            // MARK: Selection
+
             TableColumn("") { row in
 
                 Button {
@@ -319,29 +368,105 @@ struct OrdersView: View {
 
                 }
                 .buttonStyle(.plain)
-
             }
             .width(28)
+
+
+            // MARK: Order Number
+
             TableColumn("Order Number") { row in
                 Text(row.orderNumber)
             }
+            .width(min: 90, ideal: 100)
+
+
+            // MARK: Date
+
+            TableColumn("Date") { row in
+                Text(
+                    row.deliveryDate.formatted(
+                        .dateTime
+                            .day()
+                            .month(.abbreviated)
+                    )
+                )
+            }
+            .width(min: 60, ideal: 70)
+
+
+            // MARK: Student
+
+            TableColumn("Student") { row in
+                Text(row.studentOrder.student.fullName)
+            }
+            .width(min: 110, ideal: 150)
+
+
+            // MARK: Class
+
+            TableColumn("Class") { row in
+                Text(row.studentOrder.schoolClass?.name ?? "—")
+            }
+            .width(min: 50, ideal: 65)
+
+
+            // MARK: Items
+
+            TableColumn("Items") { row in
+                Text(
+                    row.studentOrder.items
+                        .map(\.displaySummary)
+                        .joined(separator: ", ")
+                )
+                .lineLimit(1)
+            }
+            .width(min: 180, ideal: 300)
+
+
+            // MARK: Notes
+
+            TableColumn("Notes") { row in
+                Text(row.notes ?? "")
+                    .lineLimit(1)
+            }
+            .width(min: 140, ideal: 240)
+
+
+            // MARK: School
+
+            TableColumn("School") { row in
+
+                Text(
+                    row.school.shortName.isEmpty
+                        ? "—"
+                        : row.school.shortName
+                )
+            }
+            .width(min: 45, ideal: 55)
+
+
+            // MARK: Printed
 
             TableColumn("Printed") { row in
 
-                HStack(spacing: 8) {
+                HStack(spacing: 5) {
 
                     if row.studentOrder.hotLabelPrinted {
 
-                        Label("Hot", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-
+                        Label(
+                            "Hot",
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .foregroundStyle(.green)
                     }
 
                     if row.studentOrder.coldLabelPrinted {
 
-                        Label("Cold", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.blue)
-
+                        Label(
+                            "Cold",
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .foregroundStyle(.blue)
                     }
 
                     if !row.studentOrder.hotLabelPrinted &&
@@ -349,39 +474,21 @@ struct OrdersView: View {
 
                         Text("—")
                             .foregroundStyle(.secondary)
-
                     }
                 }
             }
-            .width(min: 80, ideal: 130)
-
-            TableColumn("Student") { row in
-                Text(row.studentOrder.student.fullName)
-            }
-            TableColumn("Student") { row in
-                Text(row.studentOrder.student.fullName)
-            }
-            TableColumn("School") { row in
-                Text(row.school.name.isEmpty ? "Not specified" : row.school.name)
-            }
-            TableColumn("Class") { row in
-                Text(row.studentOrder.schoolClass?.name ?? "Not specified")
-            }
-            TableColumn("Items") { row in
-                Text(row.studentOrder.items.map(\.displaySummary).joined(separator: ", "))
-                    .lineLimit(1)
-            }
-            TableColumn("Notes") { row in
-                Text(row.notes ?? "")
-                    .lineLimit(1)
-            }
+            .width(min: 65, ideal: 90)
         }
         .overlay {
+
             if viewModel.filteredRows.isEmpty {
+
                 ContentUnavailableView(
                     "No Orders",
                     systemImage: "tray",
-                    description: Text("No imported orders match the current search and filters.")
+                    description: Text(
+                        "No imported orders match the current search and filters."
+                    )
                 )
             }
         }

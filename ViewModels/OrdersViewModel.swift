@@ -14,6 +14,9 @@ enum OrdersDateView: String, CaseIterable, Identifiable, Sendable {
 @Observable
 final class OrdersViewModel {
     private(set) var orders: [LunchOrder]
+    var allOrders: [LunchOrder] {
+        orders
+    }
     var searchText = ""
     var dateView: OrdersDateView = .today
     var selectedSchool = OrdersFilterOption.all
@@ -400,9 +403,13 @@ final class OrdersViewModel {
             return calendar.isDateInToday(deliveryDate)
 
         case .upcoming:
-            return deliveryDate > calendar.startOfDay(
-                for: calendar.date(byAdding: .day, value: 1, to: Date())!
-            )
+            let tomorrow = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: calendar.startOfDay(for: Date())
+            )!
+
+            return deliveryDate >= tomorrow
 
         case .history:
             return deliveryDate < calendar.startOfDay(for: Date())
