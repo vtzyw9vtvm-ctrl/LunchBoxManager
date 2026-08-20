@@ -4,25 +4,27 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct School_Lunch_ManagerApp: App {
 
-    var body: some Scene {
+    init() {
+        FirebaseApp.configure()
 
-        WindowGroup("LunchBoxManager") {
-
-            SidebarView()
-
+        Task {
+            await FirestoreService().testConnection()
         }
+    }
 
+    var body: some Scene {
+        WindowGroup("LunchBoxManager") {
+            SidebarView()
+        }
         .windowResizability(.contentSize)
-
         .defaultSize(
             width: 1400,
             height: 900
         )
-
     }
-
 }

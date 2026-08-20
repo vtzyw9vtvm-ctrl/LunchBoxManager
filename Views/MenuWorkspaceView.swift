@@ -3,6 +3,12 @@ import SwiftUI
 struct MenuWorkspaceView: View {
     
     @State private var menuManager = MenuViewModel()
+    @State private var modifierManager = ModifierManager()
+
+    private let firebaseMenuService = FirebaseMenuService()
+
+    @State private var isPublishing = false
+    @State private var publishMessage: String?
     
     @State private var selectedCategory: LunchCategory?
     @State private var selectedItemID: UUID?
@@ -356,6 +362,59 @@ struct MenuWorkspaceView: View {
                maxHeight: .infinity)
         
         .navigationTitle("Menu")
+        
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    Task {
+                        isPublishing = true
+                        publishMessage = nil
+
+                        do {
+                            try await firebaseMenuService.uploadMenu(
+                                categories: menuManager.categories,
+                                modifierGroups: modifierManager.groups
+                            )
+
+                            publishMessage = "Menu published successfully."
+
+                        } catch {
+                            publishMessage = "Publish failed: \(error.localizedDescription)"
+                        }
+
+                        isPublishing = false
+                    }
+                } label: {
+                    if isPublishing {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Label(
+                            "Publish Menu",
+                            systemImage: "icloud.and.arrow.up"
+                        )
+                    }
+                }
+                .disabled(isPublishing)
+            }
+        }
+        .alert(
+            "Menu",
+            isPresented: Binding(
+                get: { publishMessage != nil },
+                set: {
+                    if !$0 {
+                        publishMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                publishMessage = nil
+            }
+        } message: {
+            Text(publishMessage ?? "")
+        }
         
         .onAppear {
 

@@ -15,6 +15,8 @@ struct ClassInspector: View {
 
                 Divider()
 
+                // MARK: - Class
+
                 SectionCard("Class") {
 
                     HStack {
@@ -27,13 +29,52 @@ struct ClassInspector: View {
 
                     }
 
-                    
-
                 }
+
+                // MARK: - Lunch Days
+
+                SectionCard("Lunch Days") {
+
+                    VStack(alignment: .leading, spacing: 12) {
+
+                        Text("School lunches are available for this class on:")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+
+                        HStack(spacing: 8) {
+
+                            ForEach(SchoolLunchDay.allCases, id: \.self) { day in
+
+                                Button {
+
+                                    toggleLunchDay(day)
+
+                                } label: {
+
+                                    Text(day.shortTitle)
+                                        .frame(
+                                            maxWidth: .infinity
+                                        )
+
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(
+                                    schoolClass.lunchDays.contains(day)
+                                        ? .accentColor
+                                        : .gray
+                                )                            }
+                        }
+                    }
+                }
+
+                // MARK: - Status
 
                 SectionCard("Status") {
 
-                    Toggle("Active", isOn: $schoolClass.isActive)
+                    Toggle(
+                        "Active",
+                        isOn: $schoolClass.isActive
+                    )
 
                 }
 
@@ -44,7 +85,26 @@ struct ClassInspector: View {
 
     }
 
+
+    // MARK: - Lunch Days
+
+    private func toggleLunchDay(
+        _ day: SchoolLunchDay
+    ) {
+
+        if schoolClass.lunchDays.contains(day) {
+
+            schoolClass.lunchDays.remove(day)
+
+        } else {
+
+            schoolClass.lunchDays.insert(day)
+
+        }
+    }
+
 }
+
 
 #Preview {
 
@@ -54,6 +114,8 @@ struct ClassInspector: View {
         schoolID: UUID()
     )
 
-    ClassInspector(schoolClass: $schoolClass)
+    ClassInspector(
+        schoolClass: $schoolClass
+    )
 
 }
