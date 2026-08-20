@@ -4,6 +4,9 @@ import SwiftUI
 struct OrdersView: View {
 
     @State private var viewModel: OrdersViewModel
+    @State private var isLoadingFirebaseOrders = false
+
+    private let firebaseOrderService = FirebaseOrderService()
 
     private let orders: [LunchOrder]
     private let onOrdersChanged: ([LunchOrder]) -> Void
@@ -49,7 +52,11 @@ struct OrdersView: View {
             text: $viewModel.searchText,
             prompt: "Student, order number, or menu item"
         )
+        .task {
+            await loadFirebaseOrders()
+        }
     }
+    
     private var dateSelector: some View {
 
         HStack {
@@ -72,6 +79,25 @@ struct OrdersView: View {
 
         }
 
+    }
+    private func loadFirebaseOrders() async {
+        guard !isLoadingFirebaseOrders else {
+            return
+        }
+
+        isLoadingFirebaseOrders = true
+
+        do {
+            let firebaseOrders = try await firebaseOrderService.loadOrders()
+
+            viewModel.updateOrders(firebaseOrders)
+
+            print("🔥 FIREBASE ORDERS LOADED:", firebaseOrders.count)
+        } catch {
+            print("🔥 FIREBASE ORDERS ERROR:", error.localizedDescription)
+        }
+
+        isLoadingFirebaseOrders = false
     }
     private var deliveryDayHeader: some View {
 
