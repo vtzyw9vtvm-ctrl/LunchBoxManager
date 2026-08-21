@@ -64,6 +64,8 @@ final class FirebaseMenuService {
                     "isSoldOut": item.isSoldOut,
                     "isFeatured": item.isFeatured,
                     "imageName": item.imageName,
+                    "isHot": item.isHot,
+                    "isCold": item.isCold,
                     "modifierGroups": groupsData
                 ])
             }

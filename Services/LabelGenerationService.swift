@@ -72,16 +72,14 @@ struct LabelGenerationService {
     }
 
     fileprivate func isColdItem(_ item: MenuItem) -> Bool {
-        if item.isHot {
-            return false
-        }
-
         if item.isCold {
             return true
         }
 
         let itemName = item.name.normalizedItemName
-        return coldItemConfiguration.normalizedItemNames.contains { itemName.contains($0) }
+        return coldItemConfiguration.normalizedItemNames.contains {
+            itemName.contains($0)
+        }
     }
 
     fileprivate func isDrinkItem(_ item: MenuItem) -> Bool {

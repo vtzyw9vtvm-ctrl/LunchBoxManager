@@ -37,9 +37,7 @@ struct OrdersView: View {
             dateSelector
             deliveryDayHeader
 
-            if viewModel.dateView == .today {
-                productionActions
-            }
+            productionActions
 
             toolbar
             summaryStatistics
@@ -452,7 +450,13 @@ struct OrdersView: View {
             // MARK: Notes
 
             TableColumn("Notes") { row in
-                Text(row.notes ?? "")
+                let itemNotes = row.studentOrder.items
+                    .compactMap { $0.notes }
+                    .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+                let allNotes = itemNotes.joined(separator: " • ")
+
+                Text(allNotes.isEmpty ? (row.notes ?? "") : allNotes)
                     .lineLimit(1)
             }
             .width(min: 140, ideal: 240)
@@ -552,10 +556,18 @@ private struct OrderDetailView: View {
                 ForEach(row.studentOrder.items) { item in
                     VStack(alignment: .leading, spacing: 4) {
                         Text("\(item.quantity)x \(item.name)")
+
                         if !item.variants.isEmpty {
                             Text("Choice: \(item.variants.joined(separator: ", "))")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                        }
+
+                        if let notes = item.notes,
+                           !notes.isEmpty {
+                            Text("Special Instructions: \(notes)")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
                         }
                     }
                 }

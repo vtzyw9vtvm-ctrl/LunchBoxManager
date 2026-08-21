@@ -20,9 +20,7 @@ struct MenuItemInspector: View {
                 // MARK: Photo
 
                 SectionCard("Photo") {
-
                     PhotoPickerCard(imageName: $item.imageName)
-
                 }
 
                 // MARK: Details
@@ -42,7 +40,6 @@ struct MenuItemInspector: View {
 
                     TextField("Category", text: $item.category)
                         .textFieldStyle(.roundedBorder)
-
                 }
 
                 // MARK: Pricing
@@ -50,7 +47,6 @@ struct MenuItemInspector: View {
                 SectionCard("Pricing") {
 
                     HStack {
-
                         Text("Sell Price")
 
                         Spacer()
@@ -62,11 +58,9 @@ struct MenuItemInspector: View {
                         )
                         .multilineTextAlignment(.trailing)
                         .frame(width: 90)
-
                     }
 
                     HStack {
-
                         Text("Cost Price")
 
                         Spacer()
@@ -78,11 +72,9 @@ struct MenuItemInspector: View {
                         )
                         .multilineTextAlignment(.trailing)
                         .frame(width: 90)
-
                     }
 
                     Toggle("GST Included", isOn: $item.gstIncluded)
-
                 }
 
                 // MARK: Modifier Groups
@@ -93,7 +85,6 @@ struct MenuItemInspector: View {
                         selectedGroups: $item.modifierGroups,
                         manager: modifierManager
                     )
-
                 }
 
                 // MARK: Options
@@ -105,7 +96,17 @@ struct MenuItemInspector: View {
                     Toggle("Sold Out", isOn: $item.isSoldOut)
 
                     Toggle("Featured", isOn: $item.isFeatured)
-                    
+
+                    Divider()
+
+                    Toggle("Separate Cold Label", isOn: $item.isCold)
+
+                    Text(
+                        "Turn this on for items that need an additional cold-item label for packing."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                     Divider()
 
                     HStack {
@@ -116,23 +117,18 @@ struct MenuItemInspector: View {
                         Spacer()
 
                         Text(item.lastEdited, style: .date)
-
                     }
-
                 }
-
             }
             .padding(24)
-
         }
-
     }
-
 }
 
 #Preview {
 
     @Previewable
+
     @State var item = LunchMenuItem(
         name: "Chicken Burger",
         description: "Crumbed chicken, lettuce & mayo",
@@ -140,5 +136,4 @@ struct MenuItemInspector: View {
     )
 
     MenuItemInspector(item: $item)
-
 }

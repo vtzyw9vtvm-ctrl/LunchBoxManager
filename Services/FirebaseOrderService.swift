@@ -63,12 +63,24 @@ final class FirebaseOrderService {
 
             // MARK: - School
 
+            let schoolShortName: String
+
+            switch schoolName {
+            case "Christ the Priest Primary School":
+                schoolShortName = "CTP"
+
+            case "Burnside Primary School":
+                schoolShortName = "BPS"
+
+            default:
+                schoolShortName = schoolName
+            }
+
             let school = School(
                 id: schoolID,
                 name: schoolName,
-                shortName: schoolName
+                shortName: schoolShortName
             )
-
             // MARK: - Class
 
             let schoolClass = SchoolClass(
@@ -94,7 +106,16 @@ final class FirebaseOrderService {
 
                 let itemName = itemData["name"] as? String ?? ""
                 let quantity = itemData["quantity"] as? Int ?? 1
-                let itemNotes = itemData["notes"] as? String
+
+                let isHot = itemData["isHot"] as? Bool ?? true
+                let isCold = itemData["isCold"] as? Bool ?? false
+                
+                let rawItemNotes = itemData["notes"] as? String ?? ""
+                let itemNotes = rawItemNotes
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                let finalItemNotes: String? =
+                    itemNotes.isEmpty ? nil : itemNotes
 
                 let firebaseMenuItemID =
                     itemData["menuItemId"] as? String ??
@@ -122,9 +143,9 @@ final class FirebaseOrderService {
                     category: "",
                     variants: variants,
                     quantity: quantity,
-                    notes: itemNotes,
-                    isHot: false,
-                    isCold: false
+                    notes: finalItemNotes,
+                    isHot: isHot,
+                    isCold: isCold
                 )
             }
 
