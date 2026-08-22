@@ -74,7 +74,17 @@ final class MenuViewModel {
         }
 
     }
+    // MARK: - Restore Menu
 
+    func restoreMenu(_ restoredCategories: [LunchCategory]) {
+        guard !restoredCategories.isEmpty else {
+            return
+        }
+
+        categories = restoredCategories
+        save()
+    }
+    
     // MARK: - Categories
 
     @discardableResult

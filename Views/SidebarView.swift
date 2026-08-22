@@ -111,7 +111,7 @@ struct SidebarView: View {
                 Text("Reports")
 
             case .settings:
-                Text("Settings")
+                SettingsView()
 
             case nil:
                 Text("Select an option")

@@ -564,35 +564,7 @@ private struct SingleReportView: View {
     }
 }
 
-struct SettingsView: View {
-    var body: some View {
-        Form {
-            Section("General") {
-                LabeledContent("Version", value: "1.0")
-                LabeledContent("Build", value: "1")
-            }
-            Section("Printers") {
-                Text("Printer defaults will be configured in a future release.")
-                    .foregroundStyle(.secondary)
-            }
-            Section("Schools") {
-                Text("School profiles will be configured in a future release.")
-                    .foregroundStyle(.secondary)
-            }
-            Section("Menu") {
-                Text("Menu item rules will be configured in a future release.")
-                    .foregroundStyle(.secondary)
-            }
-            Section("Appearance") {
-                Text("Theme options will be configured in a future release.")
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .formStyle(.grouped)
-        .padding(24)
-        .navigationTitle("Settings")
-    }
-}
+
 
 private struct AboutView: View {
     @State private var didOpenAboutWindow = false

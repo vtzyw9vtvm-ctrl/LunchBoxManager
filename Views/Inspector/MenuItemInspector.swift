@@ -95,10 +95,18 @@ struct MenuItemInspector: View {
                 SectionCard("Options") {
 
                     Toggle("Active", isOn: $item.isActive)
-
                     Toggle("Sold Out", isOn: $item.isSoldOut)
-
                     Toggle("Featured", isOn: $item.isFeatured)
+
+                    Divider()
+
+                    Toggle("Allow Special Instructions", isOn: $item.allowNotes)
+
+                    Text(
+                        "Turn this on if parents are allowed to enter special instructions for this item."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                     Divider()
 

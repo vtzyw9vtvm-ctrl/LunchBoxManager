@@ -364,41 +364,56 @@ struct MenuWorkspaceView: View {
         .navigationTitle("Menu")
         
         .toolbar {
+
+            // MARK: - Publish Menu
+
             ToolbarItem {
+
                 Button {
+
                     Task {
+
                         isPublishing = true
                         publishMessage = nil
 
                         do {
+
                             try await firebaseMenuService.uploadMenu(
                                 categories: menuManager.categories,
                                 modifierGroups: modifierManager.groups
                             )
 
-                            publishMessage = "Menu published successfully."
+                            publishMessage =
+                                "Menu published successfully."
 
                         } catch {
-                            publishMessage = "Publish failed: \(error.localizedDescription)"
+
+                            publishMessage =
+                                "Publish failed: \(error.localizedDescription)"
                         }
 
                         isPublishing = false
                     }
+
                 } label: {
+
                     if isPublishing {
+
                         ProgressView()
                             .controlSize(.small)
+
                     } else {
+
                         Label(
                             "Publish Menu",
                             systemImage: "icloud.and.arrow.up"
                         )
                     }
                 }
+
                 .disabled(isPublishing)
             }
-        }
-        .alert(
+        }        .alert(
             "Menu",
             isPresented: Binding(
                 get: { publishMessage != nil },
