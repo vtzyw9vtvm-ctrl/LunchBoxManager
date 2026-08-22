@@ -10,6 +10,7 @@ struct AddMenuItemView: View {
     @State private var sellPrice: String
     @State private var costPrice: String
     @State private var imageName: String
+    @State private var imageURL = ""
 
     @State private var isActive: Bool
     @State private var isFeatured: Bool
@@ -47,6 +48,7 @@ struct AddMenuItemView: View {
         )
 
         _imageName = State(initialValue: item?.imageName ?? "")
+        _imageURL = State(initialValue: item?.imageURL ?? "")
 
         _isActive = State(initialValue: item?.isActive ?? true)
         _isFeatured = State(initialValue: item?.isFeatured ?? false)
@@ -69,7 +71,8 @@ struct AddMenuItemView: View {
                         SectionCard("Photo") {
 
                             PhotoPickerCard(
-                                imageName: $imageName
+                                imageName: $imageName,
+                                imageURL: $imageURL
                             )
 
                         }
@@ -148,37 +151,23 @@ struct AddMenuItemView: View {
                     Button("Save") {
 
                         let item = LunchMenuItem(
-
                             id: existingItem?.id ?? UUID(),
-
                             name: name,
-
                             description: description,
-
                             category: existingItem?.category ?? "",
-
                             price: Double(sellPrice) ?? 0,
-
                             costPrice: Double(costPrice) ?? 0,
-
                             gstIncluded: gstIncluded,
-
                             isActive: isActive,
-
                             isFeatured: isFeatured,
-
                             imageName: imageName,
-
+                            imageURL: imageURL,
                             modifierGroups: modifierGroups
-
                         )
 
                         onSave(item)
-
                         dismiss()
-
                     }
-
                 }
 
             }

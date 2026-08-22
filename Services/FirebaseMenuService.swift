@@ -50,7 +50,12 @@ final class FirebaseMenuService {
                         "modifiers": modifiersData
                     ]
                 }
-
+                print(
+                    "🔥 PUBLISHING ITEM:",
+                    item.name,
+                    "IMAGE URL:",
+                    item.imageURL
+                )
                 itemData.append([
                     "id": item.id.uuidString,
                     "sortOrder": item.sortOrder,
@@ -64,6 +69,7 @@ final class FirebaseMenuService {
                     "isSoldOut": item.isSoldOut,
                     "isFeatured": item.isFeatured,
                     "imageName": item.imageName,
+                    "imageURL": item.imageURL,
                     "isHot": item.isHot,
                     "isCold": item.isCold,
                     "modifierGroups": groupsData

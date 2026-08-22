@@ -274,6 +274,25 @@ final class OrdersViewModel {
             selectedPrintRowIDs.contains($0.id)
         }.count
     }
+    
+    var selectedFirebaseDocumentIDs: [String] {
+
+        Array(
+            Set(
+                flattenedRows.compactMap { row in
+
+                    guard selectedPrintRowIDs.contains(row.id) else {
+                        return nil
+                    }
+
+                    return row.firebaseDocumentID
+                }
+            )
+        )
+    }
+
+    
+    
     var unprintedHotLabelCount: Int {
 
         filteredRows.filter {
@@ -378,10 +397,14 @@ final class OrdersViewModel {
     }
 
     private var flattenedRows: [OrderBrowserRow] {
+
         orders.flatMap { order in
+
             order.studentOrders.map { studentOrder in
+
                 OrderBrowserRow(
                     orderID: order.id,
+                    firebaseDocumentID: order.firebaseDocumentID,
                     orderNumber: order.orderNumber,
                     school: order.school,
                     orderDate: order.orderDate,
@@ -442,29 +465,42 @@ final class OrdersViewModel {
     }
 }
 
-/// One visible row in the orders browser, representing one student's part of a Wix order.
+/// One visible row in the orders browser, representing one student's order.
 struct OrderBrowserRow: Identifiable, Hashable, Sendable {
+
     var orderID: LunchOrder.ID
+
+    /// Original Firebase order document ID.
+    /// Nil for local/sample/imported orders.
+    var firebaseDocumentID: String?
+
     var orderNumber: String
+
     var school: School
+
     var orderDate: Date
+
     var deliveryDate: Date
+
     var notes: String?
+
     var studentOrder: StudentOrder
 
     var id: StudentOrder.ID {
         studentOrder.id
     }
 }
-
 /// A selectable filter value for the orders browser.
 struct OrdersFilterOption: Identifiable, Hashable, Sendable {
-    static let all = OrdersFilterOption(id: "all", title: "All")
+
+    static let all = OrdersFilterOption(
+        id: "all",
+        title: "All"
+    )
 
     var id: String
     var title: String
 }
-
 /// Supported sort modes for imported orders.
 enum OrdersSortOption: String, CaseIterable, Identifiable, Sendable {
     case orderNumber = "Order Number"

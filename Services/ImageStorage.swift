@@ -54,7 +54,19 @@ final class ImageStorage {
         let url = imagesFolder.appendingPathComponent(filename)
 
         return NSImage(contentsOf: url)
-
     }
 
-}
+    // MARK: Image Data
+
+    func imageData(named filename: String) -> Data? {
+
+        guard !filename.isEmpty else {
+            return nil
+        }
+
+        let url = imagesFolder.appendingPathComponent(filename)
+
+        return try? Data(contentsOf: url)
+    }
+
+    }

@@ -185,8 +185,10 @@ struct OrdersView: View {
                 .frame(height: 24)
 
             Button {
-                
+
                 viewModel.selectUnprintedHotLabels()
+
+                let firebaseDocumentIDs = viewModel.selectedFirebaseDocumentIDs
 
                 let labels = labelGenerationService.makeHotLabels(
                     from: viewModel.selectedOrdersForPrinting
@@ -202,8 +204,35 @@ struct OrdersView: View {
                 )
 
                 if didPrint {
-                    viewModel.markSelectedColdLabelsPrinted()
+
+                    viewModel.markSelectedHotLabelsPrinted()
                     onOrdersChanged(viewModel.allOrders)
+
+                    Task {
+
+                        for documentID in firebaseDocumentIDs {
+
+                            do {
+
+                                try await firebaseOrderService.markHotLabelPrinted(
+                                    orderID: documentID
+                                )
+
+                                print(
+                                    "🔥 HOT PRINT STATUS SAVED:",
+                                    documentID
+                                )
+
+                            } catch {
+
+                                print(
+                                    "🔥 FAILED TO UPDATE HOT PRINT STATUS:",
+                                    documentID,
+                                    error.localizedDescription
+                                )
+                            }
+                        }
+                    }
                 }
 
             } label: {
@@ -212,16 +241,16 @@ struct OrdersView: View {
                     "Hot Labels (\(viewModel.unprintedHotLabelCount))",
                     systemImage: "flame.fill"
                 )
-
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
 
             Button {
+                viewModel.selectUnprintedColdLabels()
 
-                if viewModel.selectedPrintCount == 0 {
-                    viewModel.selectUnprintedColdLabels()
-                }
+                let firebaseDocumentIDs = viewModel.selectedFirebaseDocumentIDs
+
+                print("🔥 COLD FIREBASE IDS:", firebaseDocumentIDs)
 
                 let labels = labelGenerationService.makeColdLabels(
                     from: viewModel.selectedOrdersForPrinting
@@ -239,15 +268,34 @@ struct OrdersView: View {
                 if didPrint {
                     viewModel.markSelectedColdLabelsPrinted()
                     onOrdersChanged(viewModel.allOrders)
+
+                    Task {
+                        for documentID in firebaseDocumentIDs {
+                            do {
+                                try await firebaseOrderService.markColdLabelPrinted(
+                                    orderID: documentID
+                                )
+
+                                print(
+                                    "🔥 COLD PRINT STATUS SAVED:",
+                                    documentID
+                                )
+
+                            } catch {
+                                print(
+                                    "🔥 FAILED TO UPDATE COLD PRINT STATUS:",
+                                    documentID,
+                                    error.localizedDescription
+                                )
+                            }
+                        }
+                    }
                 }
-
             } label: {
-
                 Label(
                     "Cold Labels (\(viewModel.unprintedColdLabelCount))",
                     systemImage: "snowflake"
                 )
-
             }
             .buttonStyle(.bordered)
             .controlSize(.large)

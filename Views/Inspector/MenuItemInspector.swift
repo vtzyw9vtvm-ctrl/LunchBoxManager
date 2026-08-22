@@ -20,7 +20,10 @@ struct MenuItemInspector: View {
                 // MARK: Photo
 
                 SectionCard("Photo") {
-                    PhotoPickerCard(imageName: $item.imageName)
+                    PhotoPickerCard(
+                        imageName: $item.imageName,
+                        imageURL: $item.imageURL
+                    )
                 }
 
                 // MARK: Details

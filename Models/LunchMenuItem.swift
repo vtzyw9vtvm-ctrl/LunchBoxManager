@@ -25,6 +25,8 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
     var isFeatured = false
 
     var imageName: String = ""
+    
+    var imageURL: String = ""
 
     var lastEdited = Date()
 

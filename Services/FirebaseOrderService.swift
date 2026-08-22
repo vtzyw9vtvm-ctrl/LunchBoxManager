@@ -148,6 +148,9 @@ final class FirebaseOrderService {
                     isCold: isCold
                 )
             }
+            
+            let hotLabelPrinted = data["hotLabelPrinted"] as? Bool ?? false
+            let coldLabelPrinted = data["coldLabelPrinted"] as? Bool ?? false
 
             // MARK: - Student Order
 
@@ -156,14 +159,15 @@ final class FirebaseOrderService {
                 student: student,
                 schoolClass: schoolClass,
                 items: menuItems,
-                hotLabelPrinted: false,
-                coldLabelPrinted: false
+                hotLabelPrinted: hotLabelPrinted,
+                coldLabelPrinted: coldLabelPrinted
             )
 
             // MARK: - Lunch Order
 
             let lunchOrder = LunchOrder(
                 id: orderID,
+                firebaseDocumentID: document.documentID,
                 orderNumber: orderNumber,
                 school: school,
                 studentOrders: [studentOrder],
@@ -181,6 +185,28 @@ final class FirebaseOrderService {
         }
     }
 
+    // MARK: - Printed Status
+
+    func markHotLabelPrinted(orderID: String) async throws {
+        try await db
+            .collection("orders")
+            .document(orderID)
+            .updateData([
+                "hotLabelPrinted": true,
+                "hotLabelPrintedAt": FieldValue.serverTimestamp()
+            ])
+    }
+
+    func markColdLabelPrinted(orderID: String) async throws {
+        try await db
+            .collection("orders")
+            .document(orderID)
+            .updateData([
+                "coldLabelPrinted": true,
+                "coldLabelPrintedAt": FieldValue.serverTimestamp()
+            ])
+    }
+    
     // MARK: - Stable UUID
 
     private func stableUUID(from string: String) -> UUID {

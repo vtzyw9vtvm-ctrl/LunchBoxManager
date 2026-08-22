@@ -5,6 +5,10 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
 
     let id: UUID
 
+    /// Firebase document ID for orders received from the parent app.
+    /// Sample/local orders can leave this nil.
+    var firebaseDocumentID: String?
+
     /// Customer-facing order number.
     var orderNumber: String
 
@@ -27,6 +31,7 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
 
     init(
         id: UUID = UUID(),
+        firebaseDocumentID: String? = nil,
         orderNumber: String,
         school: School,
         studentOrders: [StudentOrder],
@@ -36,6 +41,7 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
         notes: String? = nil
     ) {
         self.id = id
+        self.firebaseDocumentID = firebaseDocumentID
         self.orderNumber = orderNumber
         self.school = school
         self.studentOrders = studentOrders
@@ -44,7 +50,6 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
         // Keeps existing/sample orders working while we transition
         // from the old system.
         self.deliveryDate = deliveryDate ?? orderDate
-
         self.status = status
         self.notes = notes
     }
@@ -58,9 +63,7 @@ enum LunchOrderStatus: String, Codable, CaseIterable, Hashable, Sendable {
     case cancelled
 
     var title: String {
-
         switch self {
-
         case .new:
             return "New"
 
@@ -72,9 +75,6 @@ enum LunchOrderStatus: String, Codable, CaseIterable, Hashable, Sendable {
 
         case .cancelled:
             return "Cancelled"
-
         }
-
     }
-
 }
