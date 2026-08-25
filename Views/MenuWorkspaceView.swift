@@ -34,36 +34,36 @@ struct MenuWorkspaceView: View {
                 ) {
                     
                     VStack(spacing: 6) {
-
+                        
                         HStack {
-
+                            
                             Label("\(menuManager.totalMenuItems)", systemImage: "fork.knife")
-
+                            
                             Spacer()
-
+                            
                             Label("\(menuManager.activeMenuItems)", systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-
+                            
                             Label("\(menuManager.featuredMenuItems)", systemImage: "star.fill")
                                 .foregroundStyle(.yellow)
-
+                            
                         }
-
+                        
                         HStack {
-
+                            
                             Text("Average")
-
+                            
                             Spacer()
-
+                            
                             Text("$\(menuManager.averageSellPrice, specifier: "%.2f")")
                                 .bold()
-
+                            
                         }
-
+                        
                     }
                     .padding(.horizontal)
                     .padding(.top, 8)
-
+                    
                     Divider()
                     
                     let category = menuManager.addCategory()
@@ -74,70 +74,83 @@ struct MenuWorkspaceView: View {
                 }
                 
                 
-                List(menuManager.categories,
-                     selection: $selectedCategory) { category in
+                ReorderableList(
+                    items: menuManager.categories,
+                    onMove: { categoryID, index in
+                        menuManager.moveCategory(
+                            withId: categoryID,
+                            to: index
+                        )
+                    }
+                ) { category in
                     
                     HStack(spacing: 12) {
-
+                        
                         Text(category.icon)
                             .font(.title3)
-
+                        
                         VStack(alignment: .leading, spacing: 2) {
-
+                            
                             Text(category.name)
                                 .font(.headline)
-
+                            
                             Text("\(menuManager.items(for: category).count) items")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-
                         }
-
+                        
+                        Spacer()
                     }
-                    .tag(category)
-
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(
+                                selectedCategory?.id == category.id
+                                ? Color.accentColor
+                                : Color.clear
+                            )
+                    )
+                    .foregroundStyle(
+                        selectedCategory?.id == category.id
+                        ? Color.white
+                        : Color.primary
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        selectedCategory = category
+                    }
                     .contextMenu {
-
+                        
                         Button {
-
                             let newCategory = menuManager.addCategory()
                             selectedCategory = newCategory
-
                         } label: {
-
                             Label("New Category", systemImage: "plus")
-
                         }
                         
                         Button {
-
                             let copy = menuManager.duplicateCategory(category)
                             selectedCategory = copy
-
                         } label: {
-
-                            Label("Duplicate Category", systemImage: "plus.square.on.square")
-
+                            Label(
+                                "Duplicate Category",
+                                systemImage: "plus.square.on.square"
+                            )
                         }
-
+                        
                         Divider()
-
+                        
                         Button(role: .destructive) {
-
                             categoryPendingDeletion = category
                             showDeleteCategoryConfirmation = true
-
                         } label: {
-
                             Label("Delete Category", systemImage: "trash")
-
                         }
-
                     }
-                    
                 }
-                
             }
+                
             .frame(minWidth: 260,
                    idealWidth: 280,
                    maxWidth: 320)

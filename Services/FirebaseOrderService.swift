@@ -20,7 +20,13 @@ final class FirebaseOrderService {
 
             // MARK: - Basic order information
 
-            let orderNumber = String(document.documentID.prefix(8)).uppercased()
+            let orderNumber: String
+
+            if let number = data["orderNumber"] as? NSNumber {
+                orderNumber = String(number.intValue)
+            } else {
+                orderNumber = String(document.documentID.prefix(8)).uppercased()
+            }
 
             let schoolName = data["school"] as? String ?? ""
             let className = data["className"] as? String ?? ""
@@ -130,6 +136,17 @@ final class FirebaseOrderService {
 
                     guard let name = optionData["name"] as? String else {
                         return nil
+                    }
+
+                    // Modifier quantity sent from the parent app.
+                    // Older orders won't have this field, so default to 1.
+                    let modifierQuantity =
+                        (optionData["quantity"] as? NSNumber)?.intValue ?? 1
+
+                    // Only show the quantity when more than one
+                    // modifier was ordered.
+                    if modifierQuantity > 1 {
+                        return "\(name) ×\(modifierQuantity)"
                     }
 
                     return name

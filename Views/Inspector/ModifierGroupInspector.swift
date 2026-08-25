@@ -15,7 +15,7 @@ struct ModifierGroupInspector: View {
 
                 Divider()
 
-                // MARK: Details
+                // MARK: - Details
 
                 GroupBox("Details") {
 
@@ -25,17 +25,15 @@ struct ModifierGroupInspector: View {
                             "Group Name",
                             text: $group.name
                         )
-
                     }
                     .padding(.top, 8)
-
                 }
 
-                // MARK: Rules
+                // MARK: - Rules
 
                 GroupBox("Rules") {
 
-                    VStack(spacing: 18) {
+                    VStack(alignment: .leading, spacing: 18) {
 
                         HStack {
 
@@ -50,7 +48,6 @@ struct ModifierGroupInspector: View {
                             )
                             .frame(width: 70)
                             .multilineTextAlignment(.trailing)
-
                         }
 
                         HStack {
@@ -66,7 +63,6 @@ struct ModifierGroupInspector: View {
                             )
                             .frame(width: 70)
                             .multilineTextAlignment(.trailing)
-
                         }
 
                         Toggle(
@@ -74,34 +70,36 @@ struct ModifierGroupInspector: View {
                             isOn: $group.useRadioButtons
                         )
 
+                        Divider()
+
+                        Toggle(
+                            "Allow Modifier Quantities",
+                            isOn: $group.allowQuantities
+                        )
+
+                        Text(
+                            "Allows the customer to choose a separate quantity for modifiers in this group. For example, 3 Party Pies can have 1 Dipping Sauce instead of automatically charging for 3 sauces."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                     .padding(.top, 8)
-
                 }
 
                 Spacer(minLength: 40)
-
             }
             .padding(24)
-
         }
-
     }
-
 }
 
 #Preview {
 
     ModifierGroupInspector(
-
         group: .constant(
-
             ModifierGroup(
                 name: "Extras"
             )
-
         )
-
     )
-
 }

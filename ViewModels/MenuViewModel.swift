@@ -132,7 +132,22 @@ final class MenuViewModel {
         save()
 
     }
+    func moveCategory(
+        withId categoryID: UUID,
+        to newIndex: Int
+    ) {
+        guard let oldIndex = categories.firstIndex(where: { $0.id == categoryID }) else {
+            return
+        }
 
+        let category = categories.remove(at: oldIndex)
+
+        let safeIndex = min(max(newIndex, 0), categories.count)
+        categories.insert(category, at: safeIndex)
+
+        save()
+    }
+    
     // MARK: - Items
 
     func items(for category: LunchCategory) -> [LunchMenuItem] {

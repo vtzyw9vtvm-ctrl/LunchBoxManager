@@ -3,34 +3,34 @@ import FirebaseFirestore
 
 @MainActor
 final class FirebaseMenuService {
-
+    
     private let db = Firestore.firestore()
-
+    
     // MARK: - Upload Complete Menu
-
+    
     func uploadMenu(
         categories: [LunchCategory],
         modifierGroups: [ModifierGroup]
     ) async throws {
-
+        
         let menuDocument = db
             .collection("school_menu")
             .document("current")
-
+        
         var categoryData: [[String: Any]] = []
-
+        
         for category in categories {
-
+            
             var itemData: [[String: Any]] = []
-
+            
             for item in category.items {
-
+                
                 let linkedGroups = modifierGroups.filter {
                     item.modifierGroups.contains($0.id)
                 }
-
+                
                 let groupsData: [[String: Any]] = linkedGroups.map { group in
-
+                    
                     let modifiersData: [[String: Any]] = group.modifiers.map { modifier in
                         [
                             "id": modifier.id.uuidString,
@@ -40,24 +40,25 @@ final class FirebaseMenuService {
                             "isAvailable": modifier.isAvailable
                         ]
                     }
-
+                    
                     return [
                         "id": group.id.uuidString,
                         "name": group.name,
                         "minimumSelections": group.minimumSelections,
                         "maximumSelections": group.maximumSelections,
                         "useRadioButtons": group.useRadioButtons,
+                        "allowQuantities": group.allowQuantities,
                         "modifiers": modifiersData
                     ]
                 }
-
+                
                 print(
                     "🔥 PUBLISHING ITEM:",
                     item.name,
                     "IMAGE URL:",
                     item.imageURL
                 )
-
+                
                 itemData.append([
                     "id": item.id.uuidString,
                     "sortOrder": item.sortOrder,
@@ -78,7 +79,7 @@ final class FirebaseMenuService {
                     "modifierGroups": groupsData
                 ])
             }
-
+            
             categoryData.append([
                 "id": category.id.uuidString,
                 "sortOrder": category.sortOrder,
@@ -87,19 +88,169 @@ final class FirebaseMenuService {
                 "items": itemData
             ])
         }
-
+        
         let data: [String: Any] = [
             "categories": categoryData,
             "updatedAt": FieldValue.serverTimestamp(),
             "version": 1
         ]
-
+        
         try await menuDocument.setData(data)
     }
-
+    
     // MARK: - Download / Restore Menu
-
+    
     func loadMenu() async throws -> [LunchCategory] {
+        
+        let document = try await db
+            .collection("school_menu")
+            .document("current")
+            .getDocument()
+        
+        guard
+            let data = document.data(),
+            let firebaseCategories =
+                data["categories"] as? [[String: Any]]
+        else {
+            return []
+        }
+        
+        var categories: [LunchCategory] = []
+        
+        for categoryData in firebaseCategories {
+            
+            let categoryID =
+            UUID(
+                uuidString:
+                    categoryData["id"] as? String ?? ""
+            ) ?? UUID()
+            
+            let categoryName =
+            categoryData["name"] as? String ?? ""
+            
+            let categoryIcon =
+            categoryData["icon"] as? String ?? "🍽️"
+            
+            let categorySortOrder =
+            categoryData["sortOrder"] as? Int ?? 0
+            
+            let firebaseItems =
+            categoryData["items"] as? [[String: Any]] ?? []
+            
+            var items: [LunchMenuItem] = []
+            
+            for itemData in firebaseItems {
+                
+                let itemID =
+                UUID(
+                    uuidString:
+                        itemData["id"] as? String ?? ""
+                ) ?? UUID()
+                
+                let firebaseGroups =
+                itemData["modifierGroups"]
+                as? [[String: Any]] ?? []
+                
+                let modifierGroupIDs: [UUID] =
+                firebaseGroups.compactMap { group in
+                    
+                    guard
+                        let id = group["id"] as? String
+                    else {
+                        return nil
+                    }
+                    
+                    return UUID(uuidString: id)
+                }
+                
+                let item = LunchMenuItem(
+                    id: itemID,
+                    
+                    sortOrder:
+                        itemData["sortOrder"] as? Int ?? 0,
+                    
+                    name:
+                        itemData["name"] as? String ?? "",
+                    
+                    description:
+                        itemData["description"] as? String ?? "",
+                    
+                    category:
+                        itemData["category"] as? String
+                    ?? categoryName,
+                    
+                    price:
+                        (itemData["price"] as? NSNumber)?
+                        .doubleValue ?? 0,
+                    
+                    costPrice:
+                        (itemData["costPrice"] as? NSNumber)?
+                        .doubleValue ?? 0,
+                    
+                    gstIncluded:
+                        itemData["gstIncluded"] as? Bool
+                    ?? true,
+                    
+                    isActive:
+                        itemData["isActive"] as? Bool
+                    ?? true,
+                    
+                    isSoldOut:
+                        itemData["isSoldOut"] as? Bool
+                    ?? false,
+                    
+                    isFeatured:
+                        itemData["isFeatured"] as? Bool
+                    ?? false,
+                    
+                    // Existing Firebase items won't have
+                    // this yet, so default to ON.
+                    allowNotes:
+                        itemData["allowNotes"] as? Bool
+                    ?? true,
+                    
+                    imageName:
+                        itemData["imageName"] as? String
+                    ?? "",
+                    
+                    imageURL:
+                        itemData["imageURL"] as? String
+                    ?? "",
+                    
+                    modifierGroups:
+                        modifierGroupIDs,
+                    
+                    isHot:
+                        itemData["isHot"] as? Bool
+                    ?? true,
+                    
+                    isCold:
+                        itemData["isCold"] as? Bool
+                    ?? false
+                )
+                
+                items.append(item)
+            }
+            
+            var category = LunchCategory(
+                id: categoryID,
+                name: categoryName,
+                icon: categoryIcon,
+                items: items
+            )
+            
+            category.sortOrder = categorySortOrder
+            
+            categories.append(category)
+        }
+        
+        return categories.sorted {
+            $0.sortOrder < $1.sortOrder
+        }
+    }
+    // MARK: - Download / Restore Modifier Groups
+
+    func loadModifierGroups() async throws -> [ModifierGroup] {
 
         let document = try await db
             .collection("school_menu")
@@ -114,137 +265,100 @@ final class FirebaseMenuService {
             return []
         }
 
-        var categories: [LunchCategory] = []
+        var groupsByID: [UUID: ModifierGroup] = [:]
 
         for categoryData in firebaseCategories {
-
-            let categoryID =
-                UUID(
-                    uuidString:
-                        categoryData["id"] as? String ?? ""
-                ) ?? UUID()
-
-            let categoryName =
-                categoryData["name"] as? String ?? ""
-
-            let categoryIcon =
-                categoryData["icon"] as? String ?? "🍽️"
-
-            let categorySortOrder =
-                categoryData["sortOrder"] as? Int ?? 0
 
             let firebaseItems =
                 categoryData["items"] as? [[String: Any]] ?? []
 
-            var items: [LunchMenuItem] = []
-
             for itemData in firebaseItems {
-
-                let itemID =
-                    UUID(
-                        uuidString:
-                            itemData["id"] as? String ?? ""
-                    ) ?? UUID()
 
                 let firebaseGroups =
                     itemData["modifierGroups"]
                         as? [[String: Any]] ?? []
 
-                let modifierGroupIDs: [UUID] =
-                    firebaseGroups.compactMap { group in
+                for groupData in firebaseGroups {
 
-                        guard
-                            let id = group["id"] as? String
-                        else {
-                            return nil
-                        }
-
-                        return UUID(uuidString: id)
+                    guard
+                        let idString = groupData["id"] as? String,
+                        let groupID = UUID(uuidString: idString)
+                    else {
+                        continue
                     }
 
-                let item = LunchMenuItem(
-                    id: itemID,
+                    // If we've already recovered this group
+                    // from another menu item, don't add it again.
+                    if groupsByID[groupID] != nil {
+                        continue
+                    }
 
-                    sortOrder:
-                        itemData["sortOrder"] as? Int ?? 0,
+                    let firebaseModifiers =
+                        groupData["modifiers"]
+                            as? [[String: Any]] ?? []
 
-                    name:
-                        itemData["name"] as? String ?? "",
+                    let modifiers: [Modifier] =
+                        firebaseModifiers.map { modifierData in
 
-                    description:
-                        itemData["description"] as? String ?? "",
+                            let modifierID =
+                                UUID(
+                                    uuidString:
+                                        modifierData["id"]
+                                            as? String ?? ""
+                                ) ?? UUID()
 
-                    category:
-                        itemData["category"] as? String
-                        ?? categoryName,
+                            return Modifier(
+                                id: modifierID,
+                                name:
+                                    modifierData["name"]
+                                        as? String ?? "",
+                                price:
+                                    (modifierData["price"]
+                                        as? NSNumber)?
+                                        .doubleValue ?? 0,
+                                isDefault:
+                                    modifierData["isDefault"]
+                                        as? Bool ?? false,
+                                isAvailable:
+                                    modifierData["isAvailable"]
+                                        as? Bool ?? true
+                            )
+                        }
 
-                    price:
-                        (itemData["price"] as? NSNumber)?
-                            .doubleValue ?? 0,
+                    let group = ModifierGroup(
+                        id: groupID,
+                        name:
+                            groupData["name"]
+                                as? String ?? "Modifier Group",
+                        minimumSelections:
+                            (groupData["minimumSelections"]
+                                as? NSNumber)?.intValue ?? 0,
+                        maximumSelections:
+                            (groupData["maximumSelections"]
+                                as? NSNumber)?.intValue ?? 99,
+                        useRadioButtons:
+                            groupData["useRadioButtons"]
+                                as? Bool ?? false,
 
-                    costPrice:
-                        (itemData["costPrice"] as? NSNumber)?
-                            .doubleValue ?? 0,
+                        // This is new and wasn't in the old
+                        // Firebase menu, so default to OFF.
+                        allowQuantities:
+                            groupData["allowQuantities"]
+                                as? Bool ?? false,
 
-                    gstIncluded:
-                        itemData["gstIncluded"] as? Bool
-                        ?? true,
+                        modifiers: modifiers
+                    )
 
-                    isActive:
-                        itemData["isActive"] as? Bool
-                        ?? true,
-
-                    isSoldOut:
-                        itemData["isSoldOut"] as? Bool
-                        ?? false,
-
-                    isFeatured:
-                        itemData["isFeatured"] as? Bool
-                        ?? false,
-
-                    // Existing Firebase items won't have
-                    // this yet, so default to ON.
-                    allowNotes:
-                        itemData["allowNotes"] as? Bool
-                        ?? true,
-
-                    imageName:
-                        itemData["imageName"] as? String
-                        ?? "",
-
-                    imageURL:
-                        itemData["imageURL"] as? String
-                        ?? "",
-
-                    modifierGroups:
-                        modifierGroupIDs,
-
-                    isHot:
-                        itemData["isHot"] as? Bool
-                        ?? true,
-
-                    isCold:
-                        itemData["isCold"] as? Bool
-                        ?? false
-                )
-
-                items.append(item)
+                    groupsByID[groupID] = group
+                }
             }
-
-            var category = LunchCategory(
-                id: categoryID,
-                name: categoryName,
-                icon: categoryIcon,
-                items: items
-            )
-
-            category.sortOrder = categorySortOrder
-
-            categories.append(category)
         }
 
-        return categories.sorted {
-            $0.sortOrder < $1.sortOrder
-        }
+        return Array(groupsByID.values)
+            .sorted {
+                $0.name.localizedCaseInsensitiveCompare(
+                    $1.name
+                ) == .orderedAscending
+            }
     }
 }
