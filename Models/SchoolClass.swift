@@ -7,6 +7,9 @@ struct SchoolClass: Identifiable, Codable, Hashable, Sendable {
 
     /// Display name, e.g. "Prep A", "1B", "3A"
     var name: String
+    
+    /// Year level this class belongs to, e.g. "Prep", "Grade 3".
+    var yearLevel: String
 
     /// The school this class belongs to.
     var schoolID: UUID
@@ -24,6 +27,7 @@ struct SchoolClass: Identifiable, Codable, Hashable, Sendable {
     init(
         id: UUID = UUID(),
         name: String,
+        yearLevel: String = "",
         schoolID: UUID,
         isActive: Bool = true,
         lunchDays: Set<SchoolLunchDay> = Set(SchoolLunchDay.allCases),
@@ -31,6 +35,7 @@ struct SchoolClass: Identifiable, Codable, Hashable, Sendable {
     ) {
         self.id = id
         self.name = name
+        self.yearLevel = yearLevel
         self.schoolID = schoolID
         self.isActive = isActive
         self.lunchDays = lunchDays
@@ -43,6 +48,7 @@ struct SchoolClass: Identifiable, Codable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case id
         case name
+        case yearLevel
         case schoolID
         case isActive
         case lunchDays
@@ -64,6 +70,11 @@ struct SchoolClass: Identifiable, Codable, Hashable, Sendable {
             String.self,
             forKey: .name
         )
+        
+        yearLevel = try container.decodeIfPresent(
+            String.self,
+            forKey: .yearLevel
+        ) ?? ""
 
         schoolID = try container.decode(
             UUID.self,

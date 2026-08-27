@@ -34,6 +34,11 @@ final class FirebaseOrderService {
             let firstName = data["firstName"] as? String ?? ""
             let lastName = data["lastName"] as? String ?? ""
 
+            let foodAllergies = (
+                data["foodAllergies"] as? String ?? ""
+            )
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
             let notes = data["notes"] as? String
 
             // MARK: - Dates
@@ -101,7 +106,8 @@ final class FirebaseOrderService {
                 id: studentID,
                 firstName: firstName,
                 lastName: lastName,
-                classID: classID
+                classID: classID,
+                allergies: foodAllergies
             )
 
             // MARK: - Items

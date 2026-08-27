@@ -34,6 +34,7 @@ struct LabelGenerationService {
                         schoolName: order.school.name,
                         className: displayClassName(studentOrder.schoolClass?.name ?? ""),
                         studentName: studentOrder.student.fullName,
+                        foodAllergies: studentOrder.student.allergies,
                         items: matchingItems
                     )
                 )
@@ -163,11 +164,54 @@ struct LabelGenerationService {
             "Order \(label.orderNumber)",
             font: .systemFont(ofSize: 8),
             color: .secondaryLabelColor,
-            rect: CGRect(x: margin, y: headerTop - 35, width: contentWidth, height: 10)
+            rect: CGRect(
+                x: margin,
+                y: headerTop - 35,
+                width: contentWidth,
+                height: 10
+            )
         ) - 3
 
-        drawDivider(in: CGRect(x: margin, y: y, width: contentWidth, height: 1))
+        drawDivider(
+            in: CGRect(
+                x: margin,
+                y: y,
+                width: contentWidth,
+                height: 1
+            )
+        )
+
         y -= 4
+
+        // MARK: - Allergy Warning
+
+        let allergies = label.foodAllergies
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if !allergies.isEmpty {
+
+            y = drawLabelLine(
+                "⚠ ALLERGY: \(allergies.uppercased())",
+                font: .boldSystemFont(ofSize: 10),
+                x: margin,
+                y: y,
+                width: contentWidth,
+                verticalPadding: 3
+            )
+
+            y -= 2
+
+            drawDivider(
+                in: CGRect(
+                    x: margin,
+                    y: y,
+                    width: contentWidth,
+                    height: 1
+                )
+            )
+
+            y -= 4
+        }
 
         for item in label.items {
             y = drawLabelLine(

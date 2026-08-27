@@ -100,6 +100,24 @@ struct ClassListView: View {
                     Label("Add Class", systemImage: "plus")
 
                 }
+                
+                // TEMPORARY - Assign year levels to existing classes
+
+                Button {
+
+                    manager.assignMissingYearLevels()
+
+                } label: {
+
+                    Label(
+                        "Assign Years",
+                        systemImage: "graduationcap"
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+                .help("Automatically assign year levels to existing classes")
+                
+                
 
             }
 

@@ -31,15 +31,35 @@ final class SchoolsViewModel {
     }
 
     func updateSchool(_ school: School) {
-
-        guard let index = schools.firstIndex(where: { $0.id == school.id }) else {
+        guard let index = schools.firstIndex(
+            where: { $0.id == school.id }
+        ) else {
             return
         }
 
         schools[index] = school
 
+        // Save locally immediately.
         save()
 
+        // Also sync the updated school to Firebase.
+        Task {
+            do {
+                let service = FirebaseSchoolService()
+
+                try await service.saveSchool(school)
+
+                print(
+                    "🔥 SCHOOL AUTO-SYNCED:",
+                    school.name
+                )
+            } catch {
+                print(
+                    "🔥 SCHOOL AUTO-SYNC ERROR:",
+                    error.localizedDescription
+                )
+            }
+        }
     }
 
     func deleteSchool(_ school: School) {
