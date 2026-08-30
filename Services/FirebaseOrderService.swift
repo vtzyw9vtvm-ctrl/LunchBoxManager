@@ -12,13 +12,39 @@ final class FirebaseOrderService {
             .collection("orders")
             .getDocuments()
 
+        return try makeLunchOrders(from: snapshot.documents)
+    }
+
+    private func makeLunchOrders(
+        from documents: [QueryDocumentSnapshot]
+    ) throws -> [LunchOrder] {
+
         var lunchOrders: [LunchOrder] = []
 
-        for document in snapshot.documents {
+        for document in documents {
+                let data = document.data()
 
-            let data = document.data()
+                // ------------------------------------------------------------
+                // Ignore cancelled/refunded orders.
+                // They remain in Firestore as a permanent transaction record,
+                // but must not appear as active orders in LunchBox Manager.
+                // ------------------------------------------------------------
 
-            // MARK: - Basic order information
+                let orderStatus =
+                    (data["status"] as? String ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased()
+
+                let paymentStatus =
+                    (data["paymentStatus"] as? String ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .lowercased()
+
+                if orderStatus == "cancelled" || paymentStatus == "refunded" {
+                    continue
+                }
+
+                // MARK: - Basic order information
 
             let orderNumber: String
 
@@ -208,6 +234,42 @@ final class FirebaseOrderService {
         }
     }
 
+    // MARK: - Live Orders
+
+    func listenForOrderChanges(
+        onChange: @escaping ([LunchOrder]) -> Void,
+        onError: @escaping (Error) -> Void
+    ) -> ListenerRegistration {
+
+        db.collection("orders")
+            .addSnapshotListener { [weak self] snapshot, error in
+
+                if let error {
+                    Task { @MainActor in
+                        onError(error)
+                    }
+                    return
+                }
+
+                guard let self,
+                      let snapshot else {
+                    return
+                }
+
+                Task { @MainActor in
+                    do {
+                        let orders = try self.makeLunchOrders(
+                            from: snapshot.documents
+                        )
+
+                        onChange(orders)
+                    } catch {
+                        onError(error)
+                    }
+                }
+            }
+    }
+    
     // MARK: - Printed Status
 
     func markHotLabelPrinted(orderID: String) async throws {

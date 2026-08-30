@@ -22,168 +22,172 @@ struct SettingsView: View {
 
     var body: some View {
 
-        ScrollView {
-
-            VStack(alignment: .leading, spacing: 24) {
-
-                Text("Settings")
-                    .font(.largeTitle.bold())
-
-                Text("Manage LunchBoxManager settings and data.")
-                    .foregroundStyle(.secondary)
-
-                Divider()
-
-                // MARK: - Menu Data
-
-                VStack(alignment: .leading, spacing: 16) {
-
-                    Label(
-                        "Menu Data",
-                        systemImage: "fork.knife"
+        VStack(spacing: 0) {
+            
+            PageBannerView(
+                title: "Settings",
+                subtitle: "Manage LunchBox Manager settings and data",
+                systemImage: "gearshape.fill",
+                color: .lunchBoxBlue
+            )
+            
+            ScrollView {
+                
+                VStack(alignment: .leading, spacing: 24) {
+                    
+                    // MARK: - Menu Data
+                    
+                    // MARK: - Menu Data
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        
+                        Label(
+                            "Menu Data",
+                            systemImage: "fork.knife"
+                        )
+                        .font(.title2.bold())
+                        
+                        Text(
+                            "Manage the menu stored on this Mac and the published menu stored in Firebase."
+                        )
+                        .foregroundStyle(.secondary)
+                        
+                        Divider()
+                        
+                        HStack {
+                            
+                            VStack(alignment: .leading, spacing: 5) {
+                                
+                                Text("Restore Menu from Firebase")
+                                    .font(.headline)
+                                
+                                Text(
+                                    "Replace the menu on this Mac with the currently published Firebase menu."
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Button {
+                                showRestoreConfirmation = true
+                            } label: {
+                                
+                                if isRestoring {
+                                    
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    
+                                } else {
+                                    
+                                    Label(
+                                        "Restore Menu",
+                                        systemImage: "icloud.and.arrow.down"
+                                    )
+                                }
+                            }
+                            .disabled(isRestoring)
+                        }
+                        
+                        if let restoreMessage {
+                            
+                            Divider()
+                            
+                            Text(restoreMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                Color(
+                                    nsColor: .controlBackgroundColor
+                                )
+                            )
                     )
-                    .font(.title2.bold())
-
-                    Text(
-                        "Manage the menu stored on this Mac and the published menu stored in Firebase."
-                    )
-                    .foregroundStyle(.secondary)
-
-                    Divider()
-
-                    HStack {
-
-                        VStack(alignment: .leading, spacing: 5) {
-
-                            Text("Restore Menu from Firebase")
+                    
+                    // MARK: - Modifier Data
+                    
+                    VStack(alignment: .leading, spacing: 16) {
+                        
+                        Label(
+                            "Modifier Data",
+                            systemImage: "slider.horizontal.3"
+                        )
+                        .font(.title2.bold())
+                        
+                        Text(
+                            "Recover modifier groups from the currently published Firebase menu."
+                        )
+                        .foregroundStyle(.secondary)
+                        
+                        Divider()
+                        
+                        HStack {
+                            
+                            VStack(alignment: .leading, spacing: 5) {
+                                
+                                Text(
+                                    "Restore Modifier Groups from Firebase"
+                                )
                                 .font(.headline)
-
-                            Text(
-                                "Replace the menu on this Mac with the currently published Firebase menu."
-                            )
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        }
-
-                        Spacer()
-
-                        Button {
-                            showRestoreConfirmation = true
-                        } label: {
-
-                            if isRestoring {
-
-                                ProgressView()
-                                    .controlSize(.small)
-
-                            } else {
-
-                                Label(
-                                    "Restore Menu",
-                                    systemImage: "icloud.and.arrow.down"
+                                
+                                Text(
+                                    "Replace the modifier groups stored on this Mac with the groups found in the published Firebase menu."
                                 )
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                             }
+                            
+                            Spacer()
+                            
+                            Button {
+                                showModifierRestoreConfirmation = true
+                            } label: {
+                                
+                                if isRestoringModifiers {
+                                    
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    
+                                } else {
+                                    
+                                    Label(
+                                        "Restore Modifiers",
+                                        systemImage: "icloud.and.arrow.down"
+                                    )
+                                }
+                            }
+                            .disabled(isRestoringModifiers)
                         }
-                        .disabled(isRestoring)
-                    }
-
-                    if let restoreMessage {
-
-                        Divider()
-
-                        Text(restoreMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            Color(
-                                nsColor: .controlBackgroundColor
-                            )
-                        )
-                )
-
-                // MARK: - Modifier Data
-
-                VStack(alignment: .leading, spacing: 16) {
-
-                    Label(
-                        "Modifier Data",
-                        systemImage: "slider.horizontal.3"
-                    )
-                    .font(.title2.bold())
-
-                    Text(
-                        "Recover modifier groups from the currently published Firebase menu."
-                    )
-                    .foregroundStyle(.secondary)
-
-                    Divider()
-
-                    HStack {
-
-                        VStack(alignment: .leading, spacing: 5) {
-
-                            Text(
-                                "Restore Modifier Groups from Firebase"
-                            )
-                            .font(.headline)
-
-                            Text(
-                                "Replace the modifier groups stored on this Mac with the groups found in the published Firebase menu."
-                            )
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        
+                        if let modifierRestoreMessage {
+                            
+                            Divider()
+                            
+                            Text(modifierRestoreMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
-
-                        Spacer()
-
-                        Button {
-                            showModifierRestoreConfirmation = true
-                        } label: {
-
-                            if isRestoringModifiers {
-
-                                ProgressView()
-                                    .controlSize(.small)
-
-                            } else {
-
-                                Label(
-                                    "Restore Modifiers",
-                                    systemImage: "icloud.and.arrow.down"
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                Color(
+                                    nsColor: .controlBackgroundColor
                                 )
-                            }
-                        }
-                        .disabled(isRestoringModifiers)
-                    }
-
-                    if let modifierRestoreMessage {
-
-                        Divider()
-
-                        Text(modifierRestoreMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            Color(
-                                nsColor: .controlBackgroundColor
                             )
-                        )
-                )
-
-                Spacer()
+                    )
+                    
+                    Spacer()
+                }
+                .padding(30)
+                .frame(maxWidth: 900, alignment: .leading)
             }
-            .padding(30)
-            .frame(maxWidth: 900, alignment: .leading)
         }
 
         // MARK: - Restore Menu Confirmation

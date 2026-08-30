@@ -11,40 +11,50 @@ struct ModifierGroupsView: View {
 
         NavigationStack {
 
-            List {
-
-                ForEach(manager.groups) { group in
-
-                    Section(group.name) {
-
-                        ForEach(group.modifiers) { modifier in
-
-                            HStack {
-
-                                Text(modifier.name)
-
-                                Spacer()
-
-                                if modifier.price > 0 {
-
-                                    Text("+$\(modifier.price, specifier: "%.2f")")
-                                        .foregroundStyle(.orange)
-
-                                } else {
-
-                                    Text("Free")
-                                        .foregroundStyle(.secondary)
-
+            VStack(spacing: 0) {
+                
+                PageBannerView(
+                    title: "Modifier Groups",
+                    subtitle: "Manage menu options, extras and choices",
+                    systemImage: "slider.horizontal.3",
+                    color: .lunchBoxPurple
+                )
+                
+                List {
+                    
+                    ForEach(manager.groups) { group in
+                        
+                        Section(group.name) {
+                            
+                            ForEach(group.modifiers) { modifier in
+                                
+                                HStack {
+                                    
+                                    Text(modifier.name)
+                                    
+                                    Spacer()
+                                    
+                                    if modifier.price > 0 {
+                                        
+                                        Text("+$\(modifier.price, specifier: "%.2f")")
+                                            .foregroundStyle(.orange)
+                                        
+                                    } else {
+                                        
+                                        Text("Free")
+                                            .foregroundStyle(.secondary)
+                                        
+                                    }
+                                    
                                 }
-
+                                
                             }
-
+                            
                         }
-
+                        
                     }
-
+                    
                 }
-
             }
             .navigationTitle("Modifier Groups")
 

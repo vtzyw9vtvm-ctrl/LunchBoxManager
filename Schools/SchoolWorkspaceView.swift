@@ -27,126 +27,136 @@ struct SchoolsWorkspaceView: View {
 
     var body: some View {
 
-        HSplitView {
+        VStack(spacing: 0) {
 
-            // MARK: - Schools
-
-            VStack(spacing: 0) {
-
-                toolbar(
-                    title: "Schools",
-                    systemImage: "plus"
-                ) {
-
-                    let school = schoolsManager.addSchool()
-                    selectedSchool = school
-                    selectedClass = nil
-
-                }
-
-                Divider()
-
-                TextField(
-                    "Search Schools...",
-                    text: $searchText
-                )
-                .textFieldStyle(.roundedBorder)
-                .padding()
-
-                List(
-                    filteredSchools,
-                    selection: $selectedSchool
-                ) { school in
-
-                    SchoolRowView(
-                        school: school,
-                        isSelected: selectedSchool?.id == school.id
-                    )
-                    .tag(school)
-
-                }
-
-            }
-            .frame(
-                minWidth: 300,
-                maxHeight: .infinity,
-                alignment: .top
+            PageBannerView(
+                title: "Schools",
+                subtitle: "Manage schools, classes and lunch days",
+                systemImage: "building.2.fill",
+                color: .lunchBoxBlue
             )
 
-            // MARK: - School Setup
-
-            Group {
-
-                if
-                    let school = selectedSchool,
-                    let index = schoolsManager.schools.firstIndex(
-                        where: { $0.id == school.id }
+            HSplitView {
+                
+                // MARK: - Schools
+                
+                VStack(spacing: 0) {
+                    
+                    toolbar(
+                        title: "Schools",
+                        systemImage: "plus"
+                    ) {
+                        
+                        let school = schoolsManager.addSchool()
+                        selectedSchool = school
+                        selectedClass = nil
+                        
+                    }
+                    
+                    Divider()
+                    
+                    TextField(
+                        "Search Schools...",
+                        text: $searchText
                     )
-                {
-
-                    VStack(spacing: 0) {
-
-                        SchoolInspector(
-                            school: Binding(
-                                get: {
-                                    schoolsManager.schools[index]
-                                },
-                                set: {
-                                    schoolsManager.updateSchool($0)
-                                }
-                            )
+                    .textFieldStyle(.roundedBorder)
+                    .padding()
+                    
+                    List(
+                        filteredSchools,
+                        selection: $selectedSchool
+                    ) { school in
+                        
+                        SchoolRowView(
+                            school: school,
+                            isSelected: selectedSchool?.id == school.id
                         )
-
-                        Divider()
-
-                        ClassListView(
-                            manager: classesManager,
-                            studentsManager: studentsManager,
-                            selectedSchool: Binding(
-                                get: {
-                                    schoolsManager.schools[index]
-                                },
-                                set: {
-                                    schoolsManager.updateSchool($0)
-                                }
-                            ),
-                            selectedClass: $selectedClass
+                        .tag(school)
+                        
+                    }
+                    
+                }
+                .frame(
+                    minWidth: 300,
+                    maxHeight: .infinity,
+                    alignment: .top
+                )
+                
+                // MARK: - School Setup
+                
+                Group {
+                    
+                    if
+                        let school = selectedSchool,
+                        let index = schoolsManager.schools.firstIndex(
+                            where: { $0.id == school.id }
                         )
-
-                        if
-                            let selectedClass,
-                            let classIndex = classesManager.classes.firstIndex(
-                                where: { $0.id == selectedClass.id }
-                            )
-                        {
-
-                            Divider()
-
-                            ClassInspector(
-                                schoolClass: Binding(
+                    {
+                        
+                        VStack(spacing: 0) {
+                            
+                            SchoolInspector(
+                                school: Binding(
                                     get: {
-                                        classesManager.classes[classIndex]
+                                        schoolsManager.schools[index]
                                     },
                                     set: {
-                                        classesManager.updateClass($0)
+                                        schoolsManager.updateSchool($0)
                                     }
                                 )
                             )
-
+                            
+                            Divider()
+                            
+                            ClassListView(
+                                manager: classesManager,
+                                studentsManager: studentsManager,
+                                selectedSchool: Binding(
+                                    get: {
+                                        schoolsManager.schools[index]
+                                    },
+                                    set: {
+                                        schoolsManager.updateSchool($0)
+                                    }
+                                ),
+                                selectedClass: $selectedClass
+                            )
+                            
+                            if
+                                let selectedClass,
+                                let classIndex = classesManager.classes.firstIndex(
+                                    where: { $0.id == selectedClass.id }
+                                )
+                            {
+                                
+                                Divider()
+                                
+                                ClassInspector(
+                                    schoolClass: Binding(
+                                        get: {
+                                            classesManager.classes[classIndex]
+                                        },
+                                        set: {
+                                            classesManager.updateClass($0)
+                                        }
+                                    )
+                                )
+                                
+                            }
+                            
                         }
-
-                    }
-
+                        
                     } else {
-                    ContentUnavailableView(
-                        "Select School",
-                        systemImage: "building.2"
-                    )
-
+                        ContentUnavailableView(
+                            "Select School",
+                            systemImage: "building.2"
+                        )
+                        
+                    }
+                    
                 }
-
+                .frame(width: 420)
             }
-            .frame(width: 420)
 
         }
         .onAppear {

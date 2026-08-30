@@ -2,6 +2,44 @@ import AppKit
 import PDFKit
 import SwiftUI
 
+struct EspressoCafeHeader: View {
+
+    var body: some View {
+
+        HStack(spacing: 18) {
+
+            Image("espressologo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 52)
+
+            Text("ESPRESSO CAFE LUNCHBOX MANAGER")
+                .font(
+                    .system(
+                        size: 24,
+                        weight: .bold
+                    )
+                )
+
+            Spacer()
+
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 10)
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+        .background(
+            Color(
+                red: 0.97,
+                green: 0.95,
+                blue: 0.92
+            )
+        )
+    }
+}
+
 struct ContentView: View {
     @State private var importViewModel = ImportViewModel()
     @State private var selectedScreen: AppScreen? = .dashboard
@@ -15,17 +53,27 @@ struct ContentView: View {
     private let pastaPreparationReportService = PastaPreparationReportService()
 
     var body: some View {
-        NavigationSplitView {
+
+        VStack(spacing: 0) {
+
+            EspressoCafeHeader()
+
+            NavigationSplitView {
             List(AppScreen.allCases, selection: $selectedScreen) { screen in
                 Label(screen.title, systemImage: screen.systemImage)
                     .tag(screen)
             }
             .navigationTitle("LunchBox Manager")
-        } detail: {
-            detailView
-                .background(AppTheme.appBackground)
-        }
-        .navigationTitle("LunchBpx Manager")
+            } detail: {
+
+                detailView
+                    .background(AppTheme.appBackground)
+
+            }
+
+        } // closes VStack
+
+        .navigationTitle("LunchBox Manager")
         .tint(AppTheme.primary)
         .frame(minWidth: 1120, minHeight: 720)
         .background(previewPresenters)
@@ -373,14 +421,73 @@ private struct DashboardHomeView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("LunchBox Manager")
-                .font(.system(size: 36, weight: .semibold))
-                .foregroundStyle(AppTheme.charcoal)
-            Text(AppDateFormatter.dashboardDate.string(from: Date()))
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.secondary)
+
+        HStack {
+
+            VStack(
+                alignment: .leading,
+                spacing: 8
+            ) {
+
+                Text("DASHBOARD")
+                    .font(
+                        .system(
+                            size: 38,
+                            weight: .bold
+                        )
+                    )
+                    .foregroundStyle(.white)
+
+                Text(
+                    AppDateFormatter
+                        .dashboardDate
+                        .string(from: Date())
+                )
+                .font(
+                    .system(
+                        size: 17,
+                        weight: .medium
+                    )
+                )
+                .foregroundStyle(
+                    .white.opacity(0.80)
+                )
+            }
+
+            Spacer()
+
+            Image(
+                systemName:
+                    "takeoutbag.and.cup.and.straw.fill"
+            )
+            .font(
+                .system(
+                    size: 42,
+                    weight: .medium
+                )
+            )
+            .foregroundStyle(
+                Color.orange
+            )
         }
+        .padding(.horizontal, 28)
+        .padding(.vertical, 22)
+        .frame(
+            maxWidth: .infinity,
+            alignment: .leading
+        )
+        .background(
+            RoundedRectangle(
+                cornerRadius: 14
+            )
+            .fill(
+                Color(
+                    red: 0.114,
+                    green: 0.169,
+                    blue: 0.271
+                )
+            )
+        )
     }
 
     private var summaryCards: some View {

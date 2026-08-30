@@ -211,7 +211,18 @@ struct KitchenProductionListService {
         let quantityFont = NSFont.boldSystemFont(ofSize: 8)
         let orderFont = NSFont.boldSystemFont(ofSize: 7.5)
 
-        renderer.drawText(row.orderNumber, font: orderFont, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: textHeight))
+        renderer.drawText(
+            formattedOrderNumber(row.orderNumber),
+            font: orderFont,
+            rect: CGRect(
+                x: columns.orderNumber.minX,
+                y: y,
+                width: columns.orderNumber.width,
+                height: textHeight
+            )
+        )
+            
+            
         renderer.drawText(row.studentName, font: font, rect: CGRect(x: columns.student.minX, y: y, width: columns.student.width, height: textHeight))
         renderer.drawText(row.className, font: font, rect: CGRect(x: columns.className.minX, y: y, width: columns.className.width, height: textHeight))
         renderer.drawText("\(row.quantity)", font: quantityFont, alignment: .center, rect: CGRect(x: columns.quantity.minX, y: y, width: columns.quantity.width, height: textHeight))
@@ -310,7 +321,14 @@ struct KitchenProductionListService {
 
         return cleanedText.isEmpty ? nil : cleanedText
     }
+    private func formattedOrderNumber(_ orderNumber: String) -> String {
+        guard let number = Int(orderNumber) else {
+            return orderNumber
+        }
 
+        return String(format: "%05d", number)
+    }
+    
     private func displaySchoolName(_ schoolName: String) -> String {
         let trimmedName = schoolName.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedName.isEmpty ? "Unknown School" : trimmedName

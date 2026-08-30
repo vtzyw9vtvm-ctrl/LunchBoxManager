@@ -255,7 +255,7 @@ struct ClassPackingListService {
         let quantityFont = NSFont.boldSystemFont(ofSize: 8)
 
         if showStudentDetails {
-            renderer.drawText(studentOrder.orderNumber, font: boldFont, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: textHeight))
+            renderer.drawText(formattedOrderNumber(studentOrder.orderNumber), font: boldFont, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: textHeight))
             renderer.drawText(studentOrder.studentName, font: boldFont, rect: CGRect(x: columns.student.minX, y: y, width: columns.student.width, height: textHeight))
         }
 
@@ -388,7 +388,14 @@ struct ClassPackingListService {
         ]
         NSString(string: text).draw(in: rect, withAttributes: attributes)
     }
+    private func formattedOrderNumber(_ orderNumber: String) -> String {
+        guard let number = Int(orderNumber) else {
+            return orderNumber
+        }
 
+        return String(format: "%05d", number)
+    }
+    
     private func displaySchoolName(_ schoolName: String) -> String {
         let trimmedName = schoolName.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedName.isEmpty ? "Unknown School" : trimmedName

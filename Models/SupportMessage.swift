@@ -13,4 +13,6 @@ struct SupportMessage: Identifiable, Hashable {
     var createdAt: Date
 
     var status: String
+    var hasUnreadParentReply: Bool = false
+    var isArchived: Bool = false
 }

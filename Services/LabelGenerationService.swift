@@ -45,27 +45,167 @@ struct LabelGenerationService {
     }
 
     func makePDFDocument(for labels: [LunchLabel]) -> PDFDocument {
+
         let data = NSMutableData()
+
         guard let consumer = CGDataConsumer(data: data) else {
             return PDFDocument()
         }
 
-        var mediaBox = CGRect(origin: .zero, size: Self.labelSize)
-        guard let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
+        var mediaBox = CGRect(
+            origin: .zero,
+            size: Self.labelSize
+        )
+
+        guard let context = CGContext(
+            consumer: consumer,
+            mediaBox: &mediaBox,
+            nil
+        ) else {
             return PDFDocument()
         }
 
         for label in labels {
-            context.beginPDFPage(nil)
-            NSGraphicsContext.saveGraphicsState()
-            NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
-            draw(label, in: mediaBox)
-            NSGraphicsContext.restoreGraphicsState()
-            context.endPDFPage()
+
+            let pages = paginatedItems(for: label)
+
+            for (pageIndex, items) in pages.enumerated() {
+
+                context.beginPDFPage(nil)
+
+                NSGraphicsContext.saveGraphicsState()
+
+                NSGraphicsContext.current =
+                    NSGraphicsContext(
+                        cgContext: context,
+                        flipped: false
+                    )
+
+                draw(
+                    label,
+                    items: items,
+                    pageNumber: pageIndex + 1,
+                    totalPages: pages.count,
+                    in: mediaBox
+                )
+
+                NSGraphicsContext.restoreGraphicsState()
+
+                context.endPDFPage()
+            }
         }
 
         context.closePDF()
-        return PDFDocument(data: data as Data) ?? PDFDocument()
+
+        return PDFDocument(data: data as Data)
+            ?? PDFDocument()
+    }
+    
+    // MARK: - Label Pagination
+
+    private func paginatedItems(
+        for label: LunchLabel
+    ) -> [[MenuItem]] {
+
+        let availableItemHeight: CGFloat = 105
+
+        var pages: [[MenuItem]] = []
+        var currentPage: [MenuItem] = []
+        var currentHeight: CGFloat = 0
+
+        for item in label.items {
+
+            let itemHeight =
+                estimatedHeight(for: item)
+
+            if !currentPage.isEmpty &&
+                currentHeight + itemHeight > availableItemHeight {
+
+                pages.append(currentPage)
+
+                currentPage = []
+                currentHeight = 0
+            }
+
+            currentPage.append(item)
+            currentHeight += itemHeight
+        }
+
+        if !currentPage.isEmpty {
+            pages.append(currentPage)
+        }
+
+        return pages.isEmpty ? [[]] : pages
+    }
+
+    private func estimatedHeight(
+        for item: MenuItem
+    ) -> CGFloat {
+
+        let itemFont =
+            NSFont.boldSystemFont(ofSize: 11)
+
+        let modifierFont =
+            italicSystemFont(ofSize: 9)
+
+        let noteFont =
+            NSFont.boldSystemFont(ofSize: 8)
+
+        var height = ceil(
+            itemFont.ascender -
+            itemFont.descender +
+            itemFont.leading +
+            2
+        )
+
+        let details = item.displayVariants
+
+        if !details.isEmpty ||
+            cleanedSpecialInstructions(for: item) != nil {
+
+            height += 0.5
+        }
+
+        for _ in details {
+            height += ceil(
+                modifierFont.ascender -
+                modifierFont.descender +
+                modifierFont.leading +
+                0.5
+            )
+        }
+
+        if cleanedSpecialInstructions(for: item) != nil {
+            height += ceil(
+                noteFont.ascender -
+                noteFont.descender +
+                noteFont.leading +
+                0.5
+            )
+        }
+
+        height += 2.25
+
+        return height
+    }
+
+    private func cleanedSpecialInstructions(
+        for item: MenuItem
+    ) -> String? {
+
+        guard
+            let notes = item.notes?
+                .trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ),
+            !notes.isEmpty,
+            let cleanedNotes =
+                notes.cleanedLabelVariant
+        else {
+            return nil
+        }
+
+        return cleanedNotes
     }
 
     fileprivate func isHotItem(_ item: MenuItem) -> Bool {
@@ -116,7 +256,13 @@ struct LabelGenerationService {
             return nil
         }
     }
+    private func formattedOrderNumber(_ orderNumber: String) -> String {
+        guard let number = Int(orderNumber) else {
+            return orderNumber
+        }
 
+        return String(format: "%05d", number)
+    }
     private func displayClassName(_ className: String) -> String {
         let trimmedClass = className.trimmingCharacters(in: .whitespacesAndNewlines)
         let classWithoutYear = trimmedClass.replacingOccurrences(
@@ -127,7 +273,13 @@ struct LabelGenerationService {
         return classWithoutYear.titleCasedWords
     }
 
-    private func draw(_ label: LunchLabel, in pageRect: CGRect) {
+    private func draw(
+        _ label: LunchLabel,
+        items: [MenuItem],
+        pageNumber: Int,
+        totalPages: Int,
+        in pageRect: CGRect
+    ) {
         NSColor.white.setFill()
         pageRect.fill()
 
@@ -136,70 +288,134 @@ struct LabelGenerationService {
         var y: CGFloat = pageRect.height - margin
 
         let headerTop = y
-        let classFont = NSFont.boldSystemFont(ofSize: 21)
-        let studentFont = NSFont.boldSystemFont(ofSize: 11)
-        let classText = label.className.isEmpty ? "CLASS NOT SET" : label.className
-        let studentText = label.studentName.isEmpty ? "Unnamed Student" : label.studentName
-        let headerGap: CGFloat = 8
-        let minimumStudentWidth: CGFloat = 80
-        let measuredClassWidth = measuredWidth(of: classText, font: classFont) + 6
-        let availableClassWidth = max(0, contentWidth - minimumStudentWidth - headerGap)
-        let classWidth = min(measuredClassWidth, availableClassWidth)
-        let studentWidth = contentWidth - classWidth - headerGap
+        if pageNumber == 1 {
 
-        drawText(
-            classText,
-            font: classFont,
-            rect: CGRect(x: margin, y: headerTop - 25, width: classWidth, height: 25)
-        )
+            // MARK: - Full Header
 
-        drawText(
-            studentText,
-            font: studentFont,
-            alignment: .right,
-            rect: CGRect(x: margin + classWidth + headerGap, y: headerTop - 21, width: studentWidth, height: 21)
-        )
+            let classFont = NSFont.boldSystemFont(ofSize: 21)
+            let studentFont = NSFont.boldSystemFont(ofSize: 11)
 
-        y = drawText(
-            "Order \(label.orderNumber)",
-            font: .systemFont(ofSize: 8),
-            color: .secondaryLabelColor,
-            rect: CGRect(
-                x: margin,
-                y: headerTop - 35,
-                width: contentWidth,
-                height: 10
+            let classText =
+                label.className.isEmpty
+                    ? "CLASS NOT SET"
+                    : label.className
+
+            let studentText =
+                label.studentName.isEmpty
+                    ? "Unnamed Student"
+                    : label.studentName
+
+            let headerGap: CGFloat = 8
+            let minimumStudentWidth: CGFloat = 80
+
+            let measuredClassWidth =
+                measuredWidth(
+                    of: classText,
+                    font: classFont
+                ) + 6
+
+            let availableClassWidth = max(
+                0,
+                contentWidth -
+                minimumStudentWidth -
+                headerGap
             )
-        ) - 3
 
-        drawDivider(
-            in: CGRect(
-                x: margin,
-                y: y,
-                width: contentWidth,
-                height: 1
+            let classWidth = min(
+                measuredClassWidth,
+                availableClassWidth
             )
-        )
 
-        y -= 4
+            let studentWidth =
+                contentWidth -
+                classWidth -
+                headerGap
 
-        // MARK: - Allergy Warning
+            drawText(
+                classText,
+                font: classFont,
+                rect: CGRect(
+                    x: margin,
+                    y: headerTop - 25,
+                    width: classWidth,
+                    height: 25
+                )
+            )
 
-        let allergies = label.foodAllergies
-            .trimmingCharacters(in: .whitespacesAndNewlines)
+            drawText(
+                studentText,
+                font: studentFont,
+                alignment: .right,
+                rect: CGRect(
+                    x: margin + classWidth + headerGap,
+                    y: headerTop - 21,
+                    width: studentWidth,
+                    height: 21
+                )
+            )
 
-        if !allergies.isEmpty {
+            let allergies =
+                label.foodAllergies
+                    .trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
 
-            y = drawLabelLine(
-                "⚠ ALLERGY: \(allergies.uppercased())",
+            if !allergies.isEmpty {
+                drawText(
+                    "⚠ ALLERGY: \(allergies.uppercased())",
+                    font: .boldSystemFont(ofSize: 9),
+                    alignment: .right,
+                    rect: CGRect(
+                        x: margin + classWidth + headerGap,
+                        y: headerTop - 33,
+                        width: studentWidth,
+                        height: 11
+                    )
+                )
+            }
+
+            y = drawText(
+                "Order \(formattedOrderNumber(label.orderNumber))",
+                font: .systemFont(ofSize: 8),
+                color: .secondaryLabelColor,
+                rect: CGRect(
+                    x: margin,
+                    y: headerTop - 35,
+                    width: contentWidth,
+                    height: 10
+                )
+            ) - 3
+
+            drawDivider(
+                in: CGRect(
+                    x: margin,
+                    y: y,
+                    width: contentWidth,
+                    height: 1
+                )
+            )
+
+            y -= 4
+
+        } else {
+
+            // MARK: - Continuation Header
+
+            let studentText =
+                label.studentName.isEmpty
+                    ? "Unnamed Student"
+                    : label.studentName
+
+            y = drawText(
+                "CONTINUED — \(studentText.uppercased())",
                 font: .boldSystemFont(ofSize: 10),
-                x: margin,
-                y: y,
-                width: contentWidth,
-                verticalPadding: 3
-            )
-
-            y -= 2
+                rect: CGRect(
+                    x: margin,
+                    y: headerTop - 16,
+                    width: contentWidth,
+                    height: 14
+                )
+            ) - 3
 
             drawDivider(
                 in: CGRect(
@@ -213,28 +429,29 @@ struct LabelGenerationService {
             y -= 4
         }
 
-        for item in label.items {
+       
+
+        for item in items {
+
             y = drawLabelLine(
                 "- \(item.quantity) x \(item.name)",
                 font: .boldSystemFont(ofSize: 11),
                 x: margin,
                 y: y,
                 width: contentWidth,
-                verticalPadding: 2.5
+                verticalPadding: 2
             )
 
-            var details = item.displayVariants
+            let details = item.displayVariants
 
-            if let notes = item.notes?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !notes.isEmpty,
-               let cleanedNotes = notes.cleanedLabelVariant {
-                details.append(cleanedNotes)
-            }
+            let specialInstructions =
+                cleanedSpecialInstructions(for: item)
 
-            if !details.isEmpty {
+            if !details.isEmpty || specialInstructions != nil {
                 y -= 0.5
             }
 
+            // Normal selected modifiers / extras
             for detail in details {
                 y = drawLabelLine(
                     detail,
@@ -243,12 +460,39 @@ struct LabelGenerationService {
                     x: margin + 12,
                     y: y,
                     width: contentWidth - 12,
-                    verticalPadding: 3
+                    verticalPadding: 0.5
+                )
+            }
+
+            // Parent-entered Special Instructions
+            if let specialInstructions {
+                y = drawLabelLine(
+                    "NOTE: \(specialInstructions)",
+                    font: .boldSystemFont(ofSize: 8),
+                    color: .labelColor,
+                    x: margin + 12,
+                    y: y,
+                    width: contentWidth - 12,
+                    verticalPadding: 0.5
                 )
             }
 
             y -= 2.25
         }
+            if totalPages > 1 {
+                drawText(
+                    "\(pageNumber) of \(totalPages)",
+                    font: .boldSystemFont(ofSize: 7),
+                    color: .secondaryLabelColor,
+                    alignment: .right,
+                    rect: CGRect(
+                        x: margin,
+                        y: 4,
+                        width: contentWidth,
+                        height: 9
+                    )
+                )
+            }
     }
 
     private func italicSystemFont(ofSize size: CGFloat) -> NSFont {

@@ -19,334 +19,344 @@ struct ModifierWorkspaceView: View {
 
     var body: some View {
 
-        HSplitView {
+        VStack(spacing: 0) {
             
-            // MARK: Groups
+            PageBannerView(
+                title: "Modifier Groups",
+                subtitle: "Manage menu options, extras and choices",
+                systemImage: "slider.horizontal.3",
+                color: .lunchBoxPurple
+            )
             
-            VStack(spacing: 0) {
+            HSplitView {
                 
-                toolbar(
-                    title: "Modifier Groups",
-                    systemImage: "plus"
-                ) {
-                    
-                    let group = manager.addGroup()
-                    
-                    selectedGroupID = group.id
-                    selectedModifierID = group.modifiers.first?.id
-                    
-                }
+                // MARK: Groups
                 
-                Divider()
-                
-                List(
-                    manager.groups,
-                    selection: $selectedGroupID
-                ) { group in
+                VStack(spacing: 0) {
                     
-                    HStack {
+                    toolbar(
+                        title: "Modifier Groups",
+                        systemImage: "plus"
+                    ) {
                         
-                        VStack(alignment: .leading, spacing: 2) {
-                            
-                            Text(group.name)
-                                .font(.headline)
-                            
-                            Text("\(group.modifiers.count) modifiers")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            
-                        }
+                        let group = manager.addGroup()
                         
-                        Spacer()
+                        selectedGroupID = group.id
+                        selectedModifierID = group.modifiers.first?.id
                         
                     }
-                    .padding(.vertical, 2)
-                    .contentShape(Rectangle())
                     
-                    .contextMenu {
+                    Divider()
+                    
+                    List(
+                        manager.groups,
+                        selection: $selectedGroupID
+                    ) { group in
                         
-                        Button {
+                        HStack {
                             
-                            var copy = group
-                            copy.id = UUID()
-                            copy.name += " Copy"
-                            
-                            manager.groups.append(copy)
-                            
-                        } label: {
-                            
-                            Label(
-                                "Duplicate",
-                                systemImage: "plus.square.on.square"
-                            )
-                            
-                        }
-                        
-                        Divider()
-                        
-                        Button(
-                            role: .destructive
-                        ) {
-                            
-                            manager.deleteGroup(group)
-                            
-                            if let first = manager.groups.first {
+                            VStack(alignment: .leading, spacing: 2) {
                                 
-                                selectedGroupID = first.id
-                                selectedModifierID = first.modifiers.first?.id
+                                Text(group.name)
+                                    .font(.headline)
                                 
-                            } else {
-                                
-                                selectedGroupID = nil
-                                selectedModifierID = nil
+                                Text("\(group.modifiers.count) modifiers")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                                 
                             }
                             
-                        } label: {
+                            Spacer()
                             
-                            Label(
-                                "Delete",
-                                systemImage: "trash"
-                            )
+                        }
+                        .padding(.vertical, 2)
+                        .contentShape(Rectangle())
+                        
+                        .contextMenu {
+                            
+                            Button {
+                                
+                                var copy = group
+                                copy.id = UUID()
+                                copy.name += " Copy"
+                                
+                                manager.groups.append(copy)
+                                
+                            } label: {
+                                
+                                Label(
+                                    "Duplicate",
+                                    systemImage: "plus.square.on.square"
+                                )
+                                
+                            }
+                            
+                            Divider()
+                            
+                            Button(
+                                role: .destructive
+                            ) {
+                                
+                                manager.deleteGroup(group)
+                                
+                                if let first = manager.groups.first {
+                                    
+                                    selectedGroupID = first.id
+                                    selectedModifierID = first.modifiers.first?.id
+                                    
+                                } else {
+                                    
+                                    selectedGroupID = nil
+                                    selectedModifierID = nil
+                                    
+                                }
+                                
+                            } label: {
+                                
+                                Label(
+                                    "Delete",
+                                    systemImage: "trash"
+                                )
+                                
+                            }
                             
                         }
                         
+                        .tag(group.id)
+                        
                     }
                     
-                    .tag(group.id)
-                    
                 }
+                .frame(
+                    minWidth: 260,
+                    idealWidth: 280,
+                    maxWidth: 320
+                )
                 
-            }
-            .frame(
-                minWidth: 260,
-                idealWidth: 280,
-                maxWidth: 320
-            )
-            
-            // MARK: Modifiers
-            
-            VStack(spacing: 0) {
+                // MARK: Modifiers
                 
-                toolbar(
-                    title: selectedGroup?.name ?? "Modifiers",
-                    systemImage: "plus"
-                ) {
+                VStack(spacing: 0) {
                     
-                    guard let group = selectedGroup else { return }
-                    
-                    let modifier = manager.addModifier(to: group)
-                    
-                    selectedModifierID = modifier.id
-                    
-                }
-                
-                Divider()
-                
-                if let group = selectedGroup {
-                    
-                    ScrollView {
+                    toolbar(
+                        title: selectedGroup?.name ?? "Modifiers",
+                        systemImage: "plus"
+                    ) {
                         
-                        LazyVStack(spacing: 12) {
+                        guard let group = selectedGroup else { return }
+                        
+                        let modifier = manager.addModifier(to: group)
+                        
+                        selectedModifierID = modifier.id
+                        
+                    }
+                    
+                    Divider()
+                    
+                    if let group = selectedGroup {
+                        
+                        ScrollView {
                             
-                            ForEach(group.modifiers) { modifier in
+                            LazyVStack(spacing: 12) {
                                 
-                                HStack {
+                                ForEach(group.modifiers) { modifier in
                                     
-                                    VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
                                         
-                                        Text(modifier.name)
-                                            .font(.headline)
-                                        
-                                        Text("$\(modifier.price, specifier: "%.2f")")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                }
-                                .padding()
-                                
-                                .background(
-                                    
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .fill(
-                                            selectedModifierID == modifier.id
-                                            ? Color.accentColor.opacity(0.15)
-                                            : Color.clear
-                                        )
-                                    
-                                )
-                                
-                                .overlay(
-                                    
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(.gray.opacity(0.15))
-                                    
-                                )
-                                
-                                .contentShape(Rectangle())
-                                
-                                .onTapGesture {
-                                    
-                                    selectedModifierID = modifier.id
-                                    
-                                }
-                                
-                                .contextMenu {
-                                    
-                                    Button {
-                                        
-                                        _ = manager.duplicateModifier(
-                                            modifier,
-                                            in: group
-                                        )
-                                        
-                                    } label: {
-                                        
-                                        Label(
-                                            "Duplicate",
-                                            systemImage: "plus.square.on.square"
-                                        )
-                                        
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    Button(role: .destructive) {
-                                        
-                                        manager.deleteModifier(
-                                            modifier,
-                                            from: group
-                                        )
-                                        
-                                        if let currentGroup = manager.groups.first(where: { $0.id == group.id }) {
+                                        VStack(alignment: .leading, spacing: 4) {
                                             
-                                            selectedModifierID = currentGroup.modifiers.first?.id
+                                            Text(modifier.name)
+                                                .font(.headline)
                                             
-                                        } else {
-                                            
-                                            selectedModifierID = nil
+                                            Text("$\(modifier.price, specifier: "%.2f")")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
                                             
                                         }
                                         
-                                    } label: {
+                                        Spacer()
                                         
-                                        Label(
-                                            "Delete",
-                                            systemImage: "trash"
-                                        )
+                                    }
+                                    .padding()
+                                    
+                                    .background(
+                                        
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .fill(
+                                                selectedModifierID == modifier.id
+                                                ? Color.accentColor.opacity(0.15)
+                                                : Color.clear
+                                            )
+                                        
+                                    )
+                                    
+                                    .overlay(
+                                        
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(.gray.opacity(0.15))
+                                        
+                                    )
+                                    
+                                    .contentShape(Rectangle())
+                                    
+                                    .onTapGesture {
+                                        
+                                        selectedModifierID = modifier.id
+                                        
+                                    }
+                                    
+                                    .contextMenu {
+                                        
+                                        Button {
+                                            
+                                            _ = manager.duplicateModifier(
+                                                modifier,
+                                                in: group
+                                            )
+                                            
+                                        } label: {
+                                            
+                                            Label(
+                                                "Duplicate",
+                                                systemImage: "plus.square.on.square"
+                                            )
+                                            
+                                        }
+                                        
+                                        Divider()
+                                        
+                                        Button(role: .destructive) {
+                                            
+                                            manager.deleteModifier(
+                                                modifier,
+                                                from: group
+                                            )
+                                            
+                                            if let currentGroup = manager.groups.first(where: { $0.id == group.id }) {
+                                                
+                                                selectedModifierID = currentGroup.modifiers.first?.id
+                                                
+                                            } else {
+                                                
+                                                selectedModifierID = nil
+                                                
+                                            }
+                                            
+                                        } label: {
+                                            
+                                            Label(
+                                                "Delete",
+                                                systemImage: "trash"
+                                            )
+                                            
+                                        }
                                         
                                     }
                                     
                                 }
                                 
                             }
+                            .padding()
                             
                         }
-                        .padding()
+                        
+                    } else {
+                        
+                        ContentUnavailableView(
+                            "Select Modifier Group",
+                            systemImage: "slider.horizontal.3"
+                        )
                         
                     }
                     
-                } else {
+                }
+                .frame(
+                    minWidth: 520,
+                    maxWidth: .infinity
+                )
+                
+                // MARK: Inspector
+                
+                Group {
                     
-                    ContentUnavailableView(
-                        "Select Modifier Group",
-                        systemImage: "slider.horizontal.3"
-                    )
+                    if let group = selectedGroup {
+                        
+                        VStack(spacing: 0) {
+                            
+                            ModifierGroupInspector(
+                                
+                                group: Binding(
+                                    
+                                    get: {
+                                        
+                                        group
+                                        
+                                    },
+                                    
+                                    set: { updated in
+                                        
+                                        manager.updateGroup(updated)
+                                        
+                                    }
+                                    
+                                )
+                                
+                            )
+                            
+                            Divider()
+                            
+                            if
+                                let modifierID = selectedModifierID,
+                                let currentGroup = manager.groups.first(where: { $0.id == group.id }),
+                                let modifier = currentGroup.modifiers.first(where: { $0.id == modifierID })
+                            {
+                                
+                                ModifierInspector(
+                                    
+                                    modifier: Binding(
+                                        
+                                        get: {
+                                            
+                                            modifier
+                                            
+                                        },
+                                        
+                                        set: { updated in
+                                            
+                                            manager.updateModifier(
+                                                updated,
+                                                in: currentGroup
+                                            )
+                                            
+                                        }
+                                        
+                                    )
+                                    
+                                )
+                                
+                            } else {
+                                
+                                ContentUnavailableView(
+                                    "Select Modifier",
+                                    systemImage: "slider.horizontal.3"
+                                )
+                                
+                            }
+                            
+                        }
+                        
+                    } else {
+                        
+                        ContentUnavailableView(
+                            "Select Modifier Group",
+                            systemImage: "slider.horizontal.3"
+                        )
+                        
+                    }
                     
                 }
+                .frame(width: 420)
                 
             }
-            .frame(
-                minWidth: 520,
-                maxWidth: .infinity
-            )
-            
-            // MARK: Inspector
-            
-            Group {
-
-                if let group = selectedGroup {
-
-                    VStack(spacing: 0) {
-
-                        ModifierGroupInspector(
-
-                            group: Binding(
-
-                                get: {
-
-                                    group
-
-                                },
-
-                                set: { updated in
-
-                                    manager.updateGroup(updated)
-
-                                }
-
-                            )
-
-                        )
-
-                        Divider()
-
-                        if
-                            let modifierID = selectedModifierID,
-                            let currentGroup = manager.groups.first(where: { $0.id == group.id }),
-                            let modifier = currentGroup.modifiers.first(where: { $0.id == modifierID })
-                        {
-
-                            ModifierInspector(
-
-                                modifier: Binding(
-
-                                    get: {
-
-                                        modifier
-
-                                    },
-
-                                    set: { updated in
-
-                                        manager.updateModifier(
-                                            updated,
-                                            in: currentGroup
-                                        )
-
-                                    }
-
-                                )
-
-                            )
-
-                        } else {
-
-                            ContentUnavailableView(
-                                "Select Modifier",
-                                systemImage: "slider.horizontal.3"
-                            )
-
-                        }
-
-                    }
-
-                } else {
-
-                    ContentUnavailableView(
-                        "Select Modifier Group",
-                        systemImage: "slider.horizontal.3"
-                    )
-
-                }
-
-            }
-            .frame(width: 420)
-
         }
         .frame(
             maxWidth: .infinity,

@@ -1,10 +1,14 @@
 import SwiftUI
+import FirebaseFirestore
 
 /// Browse imported lunch orders before label generation.
 struct OrdersView: View {
 
     @State private var viewModel: OrdersViewModel
+
     @State private var isLoadingFirebaseOrders = false
+
+    @State private var orderListener: ListenerRegistration?
 
     private let firebaseOrderService = FirebaseOrderService()
 
@@ -33,18 +37,36 @@ struct OrdersView: View {
     }
 
     var body: some View {
-        VStack(spacing: 16) {
-            dateSelector
-            deliveryDayHeader
 
-            productionActions
+        VStack(spacing: 0) {
 
-            toolbar
-            summaryStatistics
-            ordersTable
-            selectedOrderDetail
+            PageBannerView(
+                title: "School Orders",
+                subtitle: "View and manage school lunch orders",
+                systemImage: "bag.fill",
+                color: .lunchBoxOrangeBrown
+            )
+
+            VStack(spacing: 16) {
+
+                dateSelector
+
+                deliveryDayHeader
+
+                productionActions
+
+                toolbar
+
+                summaryStatistics
+
+                ordersTable
+
+                selectedOrderDetail
+
+            }
+            .padding(20)
+
         }
-        .padding(20)
         .navigationTitle("Orders")
         .searchable(
             text: $viewModel.searchText,
@@ -52,15 +74,17 @@ struct OrdersView: View {
         )
         .task {
             await loadFirebaseOrders()
+            startListeningForOrders()
+        }
+        .onDisappear {
+            orderListener?.remove()
+            orderListener = nil
         }
     }
     
     private var dateSelector: some View {
 
         HStack {
-
-            Text("School Orders")
-                .font(.largeTitle.bold())
 
             Spacer()
 
@@ -97,6 +121,34 @@ struct OrdersView: View {
 
         isLoadingFirebaseOrders = false
     }
+    
+    private func startListeningForOrders() {
+
+        // Prevent accidentally creating more than one listener.
+        guard orderListener == nil else {
+            return
+        }
+
+        orderListener = firebaseOrderService.listenForOrderChanges(
+            onChange: { firebaseOrders in
+
+                viewModel.updateOrders(firebaseOrders)
+
+                print(
+                    "🔥 LIVE FIREBASE ORDERS UPDATED:",
+                    firebaseOrders.count
+                )
+            },
+            onError: { error in
+
+                print(
+                    "🔥 LIVE FIREBASE ORDERS ERROR:",
+                    error.localizedDescription
+                )
+            }
+        )
+    }
+    
     private var deliveryDayHeader: some View {
 
         HStack {
@@ -238,11 +290,12 @@ struct OrdersView: View {
             } label: {
 
                 Label(
-                    "Hot Labels (\(viewModel.unprintedHotLabelCount))",
-                    systemImage: "flame.fill"
+                    "Bag Labels (\(viewModel.unprintedHotLabelCount))",
+                    systemImage: "bag.fill"
                 )
             }
             .buttonStyle(.borderedProminent)
+            .tint(.lunchBoxGreen)
             .controlSize(.large)
 
             Button {
@@ -293,11 +346,12 @@ struct OrdersView: View {
                 }
             } label: {
                 Label(
-                    "Cold Labels (\(viewModel.unprintedColdLabelCount))",
+                    "Cold Bag Labels (\(viewModel.unprintedColdLabelCount))",
                     systemImage: "snowflake"
                 )
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(.blue.opacity(0.65))
             .controlSize(.large)
 
             Button {
@@ -322,7 +376,8 @@ struct OrdersView: View {
                 )
 
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(.lunchBoxPurple)
             .controlSize(.large)
             Button {
 
@@ -346,7 +401,14 @@ struct OrdersView: View {
                 )
 
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(
+                Color(
+                    red: 0.72,
+                    green: 0.62,
+                    blue: 0.48
+                )
+            )
             .controlSize(.large)
             Button {
 
@@ -370,7 +432,14 @@ struct OrdersView: View {
                 )
 
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.borderedProminent)
+            .tint(
+                Color(
+                    red: 0.78,
+                    green: 0.48,
+                    blue: 0.58
+                )
+            )
             .controlSize(.large)
             Spacer()
 
@@ -447,7 +516,7 @@ struct OrdersView: View {
             // MARK: Order Number
 
             TableColumn("Order Number") { row in
-                Text(row.orderNumber)
+                Text(formattedOrderNumber(row.orderNumber))
             }
             .width(min: 90, ideal: 100)
 
@@ -594,7 +663,10 @@ private struct OrderDetailView: View {
                 )
                 DetailRow(title: "School", value: row.school.name.isEmpty ? "Not specified" : row.school.name)
                 DetailRow(title: "Class", value: row.studentOrder.schoolClass?.name ?? "Not specified")
-                DetailRow(title: "Order Number", value: row.orderNumber)
+                DetailRow(
+                    title: "Order Number",
+                    value: formattedOrderNumber(row.orderNumber)
+                )
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -672,7 +744,13 @@ private struct CompactStatisticView: View {
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
     }
 }
+private func formattedOrderNumber(_ orderNumber: String) -> String {
+    guard let number = Int(orderNumber) else {
+        return orderNumber
+    }
 
+    return String(format: "%05d", number)
+}
 #Preview {
     OrdersView(orders: SampleDataService().makeSampleImport().orders)
 }

@@ -238,7 +238,7 @@ struct PastaPreparationReportService {
         let quantityFont = NSFont.boldSystemFont(ofSize: 8)
         let orderFont = NSFont.boldSystemFont(ofSize: 7.5)
 
-        renderer.drawText(row.orderNumber, font: orderFont, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: textHeight))
+        renderer.drawText(formattedOrderNumber(row.orderNumber), font: orderFont, rect: CGRect(x: columns.orderNumber.minX, y: y, width: columns.orderNumber.width, height: textHeight))
         renderer.drawText(row.studentName, font: font, rect: CGRect(x: columns.student.minX, y: y, width: columns.student.width, height: textHeight))
         renderer.drawText(row.className, font: font, rect: CGRect(x: columns.className.minX, y: y, width: columns.className.width, height: textHeight))
         renderer.drawText(row.schoolName, font: font, rect: CGRect(x: columns.school.minX, y: y, width: columns.school.width, height: textHeight))
@@ -387,6 +387,13 @@ struct PastaPreparationReportService {
             .paragraphStyle: paragraphStyle
         ]
         NSString(string: text).draw(in: rect, withAttributes: attributes)
+    }
+    private func formattedOrderNumber(_ orderNumber: String) -> String {
+        guard let number = Int(orderNumber) else {
+            return orderNumber
+        }
+
+        return String(format: "%05d", number)
     }
 
     private func displaySchoolName(_ schoolName: String) -> String {

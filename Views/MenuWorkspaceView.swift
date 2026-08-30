@@ -21,8 +21,71 @@ struct MenuWorkspaceView: View {
     
     
     var body: some View {
-        
-        HSplitView {
+
+        VStack(spacing: 0) {
+
+            // MARK: - Page Banner
+
+            HStack {
+
+                VStack(
+                    alignment: .leading,
+                    spacing: 5
+                ) {
+
+                    Text("MENU")
+                        .font(
+                            .system(
+                                size: 38,
+                                weight: .bold
+                            )
+                        )
+                        .foregroundStyle(.white)
+
+                    Text(
+                        "Manage menu items, categories and pricing"
+                    )
+                    .font(
+                        .system(
+                            size: 15,
+                            weight: .medium
+                        )
+                    )
+                    .foregroundStyle(
+                        .white.opacity(0.78)
+                    )
+                }
+
+                Spacer()
+
+                Image(systemName: "fork.knife")
+                    .font(
+                        .system(
+                            size: 38,
+                            weight: .semibold
+                        )
+                    )
+                    .foregroundStyle(
+                        Color.orange
+                    )
+            }
+            .padding(.horizontal, 26)
+            .padding(.vertical, 17)
+            .frame(
+                maxWidth: .infinity,
+                alignment: .leading
+            )
+            .background(
+                Color(
+                    red: 0.333,
+                    green: 0.478,
+                    blue: 0.353
+                )
+            )
+
+            // MARK: - Menu Workspace
+
+            HSplitView {
             
             // MARK: Categories
             
@@ -371,12 +434,15 @@ struct MenuWorkspaceView: View {
             .frame(width: 420)
             
         }
-        .frame(maxWidth: .infinity,
-               maxHeight: .infinity)
-        
-        .navigationTitle("Menu")
-        
-        .toolbar {
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity
+            )
+
+            } // closes the new VStack
+
+            .navigationTitle("Menu")
+            .toolbar {
 
             // MARK: - Publish Menu
 
