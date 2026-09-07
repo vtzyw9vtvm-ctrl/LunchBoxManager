@@ -60,6 +60,7 @@ private extension MenuItem {
             school: school,
             orderDate: Date(),
             deliveryDate: Date(),
+            status: .new,
             notes: "Deliver to office",
             studentOrder: studentOrder
         )

@@ -57,14 +57,18 @@ struct ClassPackingListService {
                         orderNumber: order.orderNumber,
                         studentName: displayStudentName(studentOrder.student.fullName),
                         className: className,
-                        items: studentOrder.items.map { item in
-                            ClassPackingItem(
-                                name: displayItemName(item.name),
-                                quantity: item.quantity,
-                                extras: extras(for: item),
-                                isColdSummaryItem: isColdSummaryItem(item)
-                            )
-                        }
+                        items: studentOrder.items
+                            .filter { item in
+                                item.activeQuantity > 0
+                            }
+                            .map { item in
+                                ClassPackingItem(
+                                    name: displayItemName(item.name),
+                                    quantity: item.activeQuantity,
+                                    extras: extras(for: item),
+                                    isColdSummaryItem: isColdSummaryItem(item)
+                                )
+                            }
                     )
                 )
             }

@@ -44,6 +44,7 @@ final class FirebaseMenuService {
                     return [
                         "id": group.id.uuidString,
                         "name": group.name,
+                        "customerName": group.customerName,
                         "minimumSelections": group.minimumSelections,
                         "maximumSelections": group.maximumSelections,
                         "useRadioButtons": group.useRadioButtons,
@@ -76,6 +77,13 @@ final class FirebaseMenuService {
                     "imageURL": item.imageURL,
                     "isHot": item.isHot,
                     "isCold": item.isCold,
+
+                    // Dietary information
+                    "isGlutenFree": item.isGlutenFree,
+                    "isVegan": item.isVegan,
+                    "isVegetarian": item.isVegetarian,
+                    "isHalal": item.isHalal,
+
                     "modifierGroups": groupsData
                 ])
             }
@@ -222,11 +230,27 @@ final class FirebaseMenuService {
                     
                     isHot:
                         itemData["isHot"] as? Bool
-                    ?? true,
-                    
+                        ?? true,
+
                     isCold:
                         itemData["isCold"] as? Bool
-                    ?? false
+                        ?? false,
+
+                    isGlutenFree:
+                        itemData["isGlutenFree"] as? Bool
+                        ?? false,
+
+                    isVegan:
+                        itemData["isVegan"] as? Bool
+                        ?? false,
+
+                    isVegetarian:
+                        itemData["isVegetarian"] as? Bool
+                        ?? false,
+
+                    isHalal:
+                        itemData["isHalal"] as? Bool
+                        ?? false
                 )
                 
                 items.append(item)
@@ -330,6 +354,11 @@ final class FirebaseMenuService {
                         name:
                             groupData["name"]
                                 as? String ?? "Modifier Group",
+                        customerName:
+                            groupData["customerName"]
+                                as? String
+                            ?? groupData["name"] as? String
+                            ?? "Modifier Group",
                         minimumSelections:
                             (groupData["minimumSelections"]
                                 as? NSNumber)?.intValue ?? 0,

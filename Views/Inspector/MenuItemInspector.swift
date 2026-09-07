@@ -88,6 +88,26 @@ struct MenuItemInspector: View {
                         selectedGroups: $item.modifierGroups,
                         manager: modifierManager
                     )
+
+                }
+
+                // MARK: Dietary Information
+
+                SectionCard("Dietary Information") {
+
+                    Toggle("Gluten Free", isOn: $item.isGlutenFree)
+
+                    Toggle("Vegan", isOn: $item.isVegan)
+
+                    Toggle("Vegetarian", isOn: $item.isVegetarian)
+
+                    Toggle("Halal", isOn: $item.isHalal)
+
+                    Text(
+                        "Select all that apply. These will be shown to parents on the LunchBox menu."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
 
                 // MARK: Options

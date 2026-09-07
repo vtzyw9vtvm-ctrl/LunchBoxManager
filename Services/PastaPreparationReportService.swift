@@ -55,6 +55,13 @@ struct PastaPreparationReportService {
                 totalStudentOrdersProcessed += 1
                 for item in studentOrder.items {
                     totalMenuItemsProcessed += 1
+
+                    // Fully refunded items do not need
+                    // to be prepared.
+                    guard item.activeQuantity > 0 else {
+                        continue
+                    }
+
                     guard isPastaItem(item) else { continue }
 
                     let itemName = pastaItemName(for: item)
@@ -70,7 +77,7 @@ struct PastaPreparationReportService {
                             studentName: displayStudentName(studentOrder.student.fullName),
                             className: displayClassName(studentOrder.schoolClass?.name ?? ""),
                             schoolName: schoolName,
-                            quantity: item.quantity,
+                            quantity: item.activeQuantity,
                             extras: extras,
                             hasParmesan: hasParmesan(in: extras)
                         )

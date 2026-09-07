@@ -19,12 +19,45 @@ struct ModifierGroupInspector: View {
 
                 GroupBox("Details") {
 
-                    VStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 16) {
 
-                        TextField(
-                            "Group Name",
-                            text: $group.name
-                        )
+                        VStack(alignment: .leading, spacing: 6) {
+
+                            Text("Manager Name")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            TextField(
+                                "e.g. Burger Extras",
+                                text: $group.name
+                            )
+
+                            Text(
+                                "Only shown in LunchBox Manager."
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 6) {
+
+                            Text("Parent App Name")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            TextField(
+                                "e.g. Extras",
+                                text: $group.customerName
+                            )
+
+                            Text(
+                                "This is the heading parents will see when ordering."
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
                     }
                     .padding(.top, 8)
                 }

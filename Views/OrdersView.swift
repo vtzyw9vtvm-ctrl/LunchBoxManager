@@ -60,6 +60,7 @@ struct OrdersView: View {
                 summaryStatistics
 
                 ordersTable
+                    .frame(minHeight: 220)
 
                 selectedOrderDetail
 
@@ -163,7 +164,7 @@ struct OrdersView: View {
                         .font(.title2.bold())
 
                     Text(
-                        Date.now.formatted(
+                        viewModel.activeDeliveryDate.formatted(
                             .dateTime
                                 .weekday(.wide)
                                 .day()
@@ -233,12 +234,14 @@ struct OrdersView: View {
             }
             .buttonStyle(.bordered)
 
-            Divider()
-                .frame(height: 24)
-
             Button {
+                // If orders have been manually ticked, print only those orders.
+                // Otherwise print the normal batch of unprinted hot labels.
+                let isManualReprint = !viewModel.selectedPrintRowIDs.isEmpty
 
-                viewModel.selectUnprintedHotLabels()
+                if !isManualReprint {
+                    viewModel.selectUnprintedHotLabels()
+                }
 
                 let firebaseDocumentIDs = viewModel.selectedFirebaseDocumentIDs
 
@@ -252,43 +255,42 @@ struct OrdersView: View {
 
                 let didPrint = labelPrintService.printLabels(
                     document: document,
-                    jobTitle: "Hot Lunch Labels"
+                    jobTitle: isManualReprint
+                        ? "Reprint Hot Lunch Labels"
+                        : "Hot Lunch Labels"
                 )
 
                 if didPrint {
+                    // Normal batch printing marks the labels as printed.
+                    //
+                    // A manual reprint does NOT alter the existing print status.
+                    if !isManualReprint {
+                        viewModel.markSelectedHotLabelsPrinted()
+                        onOrdersChanged(viewModel.allOrders)
 
-                    viewModel.markSelectedHotLabelsPrinted()
-                    onOrdersChanged(viewModel.allOrders)
+                        Task {
+                            for documentID in firebaseDocumentIDs {
+                                do {
+                                    try await firebaseOrderService.markHotLabelPrinted(
+                                        orderID: documentID
+                                    )
 
-                    Task {
-
-                        for documentID in firebaseDocumentIDs {
-
-                            do {
-
-                                try await firebaseOrderService.markHotLabelPrinted(
-                                    orderID: documentID
-                                )
-
-                                print(
-                                    "🔥 HOT PRINT STATUS SAVED:",
-                                    documentID
-                                )
-
-                            } catch {
-
-                                print(
-                                    "🔥 FAILED TO UPDATE HOT PRINT STATUS:",
-                                    documentID,
-                                    error.localizedDescription
-                                )
+                                    print(
+                                        "🔥 HOT PRINT STATUS SAVED:",
+                                        documentID
+                                    )
+                                } catch {
+                                    print(
+                                        "🔥 FAILED TO UPDATE HOT PRINT STATUS:",
+                                        documentID,
+                                        error.localizedDescription
+                                    )
+                                }
                             }
                         }
                     }
                 }
-
             } label: {
-
                 Label(
                     "Bag Labels (\(viewModel.unprintedHotLabelCount))",
                     systemImage: "bag.fill"
@@ -299,11 +301,16 @@ struct OrdersView: View {
             .controlSize(.large)
 
             Button {
-                viewModel.selectUnprintedColdLabels()
+                // If orders have been manually ticked, print cold labels
+                // only for those selected orders.
+                // Otherwise print the normal batch of unprinted cold labels.
+                let isManualReprint = !viewModel.selectedPrintRowIDs.isEmpty
+
+                if !isManualReprint {
+                    viewModel.selectUnprintedColdLabels()
+                }
 
                 let firebaseDocumentIDs = viewModel.selectedFirebaseDocumentIDs
-
-                print("🔥 COLD FIREBASE IDS:", firebaseDocumentIDs)
 
                 let labels = labelGenerationService.makeColdLabels(
                     from: viewModel.selectedOrdersForPrinting
@@ -315,31 +322,37 @@ struct OrdersView: View {
 
                 let didPrint = labelPrintService.printLabels(
                     document: document,
-                    jobTitle: "Cold Lunch Labels"
+                    jobTitle: isManualReprint
+                        ? "Reprint Cold Lunch Labels"
+                        : "Cold Lunch Labels"
                 )
 
                 if didPrint {
-                    viewModel.markSelectedColdLabelsPrinted()
-                    onOrdersChanged(viewModel.allOrders)
+                    // Normal batch printing marks the labels as printed.
+                    //
+                    // A manual reprint does NOT alter the existing print status.
+                    if !isManualReprint {
+                        viewModel.markSelectedColdLabelsPrinted()
+                        onOrdersChanged(viewModel.allOrders)
 
-                    Task {
-                        for documentID in firebaseDocumentIDs {
-                            do {
-                                try await firebaseOrderService.markColdLabelPrinted(
-                                    orderID: documentID
-                                )
+                        Task {
+                            for documentID in firebaseDocumentIDs {
+                                do {
+                                    try await firebaseOrderService.markColdLabelPrinted(
+                                        orderID: documentID
+                                    )
 
-                                print(
-                                    "🔥 COLD PRINT STATUS SAVED:",
-                                    documentID
-                                )
-
-                            } catch {
-                                print(
-                                    "🔥 FAILED TO UPDATE COLD PRINT STATUS:",
-                                    documentID,
-                                    error.localizedDescription
-                                )
+                                    print(
+                                        "🔥 COLD PRINT STATUS SAVED:",
+                                        documentID
+                                    )
+                                } catch {
+                                    print(
+                                        "🔥 FAILED TO UPDATE COLD PRINT STATUS:",
+                                        documentID,
+                                        error.localizedDescription
+                                    )
+                                }
                             }
                         }
                     }
@@ -650,11 +663,29 @@ struct OrdersView: View {
 }
 
 private struct OrderDetailView: View {
+
     var row: OrderBrowserRow
+
+    @State private var showingRefundSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            OrderRowView(row: row)
+
+            HStack {
+                OrderRowView(row: row)
+
+                if row.status == .cancelled {
+                    Text("CANCELLED • REFUNDED")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(
+                            Color.red,
+                            in: Capsule()
+                        )
+                }
+            }
 
             Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 10) {
                 DetailRow(
@@ -675,7 +706,28 @@ private struct OrderDetailView: View {
 
                 ForEach(row.studentOrder.items) { item in
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("\(item.quantity)x \(item.name)")
+
+                        HStack(spacing: 8) {
+                            Text("\(item.quantity)x \(item.name)")
+                                .strikethrough(
+                                    item.refundedQuantity >= item.quantity
+                                )
+                                .foregroundStyle(
+                                    item.refundedQuantity >= item.quantity
+                                        ? .secondary
+                                        : .primary
+                                )
+
+                            if item.refundedQuantity > 0 {
+                                Text(
+                                    item.refundedQuantity >= item.quantity
+                                        ? "REFUNDED — \(item.refundedAmount, format: .currency(code: "AUD"))"
+                                        : "\(item.refundedQuantity) REFUNDED — \(item.refundedAmount, format: .currency(code: "AUD"))"
+                                )
+                                .font(.caption.bold())
+                                .foregroundStyle(.red)
+                            }
+                        }
 
                         if !item.variants.isEmpty {
                             Text("Choice: \(item.variants.joined(separator: ", "))")
@@ -697,16 +749,445 @@ private struct OrderDetailView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Notes")
                         .font(.headline)
+
                     Text(notes)
                 }
             }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
-    }
-}
 
+            Divider()
+
+            HStack {
+                Spacer()
+
+                Button {
+                    showingRefundSheet = true
+                } label: {
+                    Label(
+                        "Refund Items",
+                        systemImage: "arrow.uturn.backward.circle"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(
+                    row.status == .cancelled ||
+                    row.firebaseDocumentID == nil ||
+                    row.studentOrder.items.allSatisfy {
+                        $0.firebaseOrderItemID == nil
+                    }
+                )
+            }
+
+            }
+            .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            .background.secondary,
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .sheet(isPresented: $showingRefundSheet) {
+            RefundItemsSheet(row: row)
+        }
+            }
+
+        }
+private struct RefundItemsSheet: View {
+
+    let row: OrderBrowserRow
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var selectedItemIDs: Set<UUID> = []
+    @State private var refundQuantities: [UUID: Int] = [:]
+
+    @State private var showingConfirmation = false
+    @State private var isRefunding = false
+    @State private var refundError: String?
+    @State private var activeRefundRequestId: String?
+
+    private var selectedCount: Int {
+        selectedItemIDs.count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Refund Items")
+                        .font(.title2.bold())
+
+                    Text(
+                        "Order #\(formattedOrderNumber(row.orderNumber)) — \(row.studentOrder.student.fullName)"
+                    )
+                    .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+
+            Divider()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+
+                    ForEach(row.studentOrder.items) { item in
+                        refundItemRow(item)
+                    }
+                }
+            }
+
+            Divider()
+
+            HStack {
+                Text(
+                    selectedCount == 0
+                        ? "Select the items to refund."
+                        : "\(selectedCount) item\(selectedCount == 1 ? "" : "s") selected"
+                )
+                .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Button("Cancel") {
+                    dismiss()
+                }
+
+                Button("Continue") {
+                    showingConfirmation = true
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(
+                    selectedItemIDs.isEmpty ||
+                    isRefunding
+                )
+            }
+        }
+        .padding(24)
+        .frame(
+            minWidth: 520,
+            idealWidth: 580,
+            minHeight: 360,
+            idealHeight: 460
+        )
+        
+        .confirmationDialog(
+            "Confirm Refund",
+            isPresented: $showingConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Refund Selected Items", role: .destructive) {
+                Task {
+                    await performRefund()
+                }
+            }
+
+            Button("Cancel", role: .cancel) {
+            }
+        } message: {
+            Text(refundConfirmationMessage)
+        }
+        .alert(
+            "Refund Failed",
+            isPresented: Binding(
+                get: { refundError != nil },
+                set: { newValue in
+                    if !newValue {
+                        refundError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                refundError = nil
+            }
+        } message: {
+            Text(refundError ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private func refundItemRow(
+        _ item: MenuItem
+    ) -> some View {
+
+        let isSelected =
+            selectedItemIDs.contains(item.id)
+
+        let remainingQuantity =
+            item.activeQuantity
+
+        let isFullyRefunded =
+            remainingQuantity == 0
+
+        VStack(alignment: .leading, spacing: 8) {
+
+            HStack(alignment: .top, spacing: 12) {
+
+                Button {
+                    toggleItem(item)
+                } label: {
+                    Image(
+                        systemName: isFullyRefunded
+                            ? "checkmark.square.fill"
+                            : (
+                                isSelected
+                                    ? "checkmark.square.fill"
+                                    : "square"
+                            )
+                    )
+                    .font(.system(size: 18))
+                    .foregroundStyle(
+                        isFullyRefunded
+                            ? .secondary
+                            : .primary
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(isFullyRefunded)
+
+                VStack(alignment: .leading, spacing: 4) {
+
+                    HStack(spacing: 8) {
+
+                        Text(item.name)
+                            .fontWeight(.semibold)
+                            .strikethrough(isFullyRefunded)
+                            .foregroundStyle(
+                                isFullyRefunded
+                                    ? .secondary
+                                    : .primary
+                            )
+
+                        if isFullyRefunded {
+                            Text("REFUNDED")
+                                .font(.caption.bold())
+                                .foregroundStyle(.red)
+                        }
+                    }
+
+                    if !item.variants.isEmpty {
+                        Text(
+                            item.variants.joined(
+                                separator: ", "
+                            )
+                        )
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    if item.refundedQuantity > 0 {
+
+                        if isFullyRefunded {
+                            Text(
+                                "Ordered: \(item.quantity) • Refunded: \(item.refundedQuantity) • Remaining: 0"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        } else {
+                            Text(
+                                "Ordered: \(item.quantity) • Refunded: \(item.refundedQuantity) • Remaining: \(remainingQuantity)"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+
+                    } else {
+
+                        Text(
+                            item.quantity == 1
+                                ? "Quantity: 1"
+                                : "Quantity: \(item.quantity)"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                if isSelected &&
+                    remainingQuantity > 1 {
+
+                    Stepper(
+                        value: quantityBinding(for: item),
+                        in: 1...remainingQuantity
+                    ) {
+                        Text(
+                            "Refund \(refundQuantities[item.id] ?? 1)"
+                        )
+                    }
+                    .fixedSize()
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .padding(12)
+        .background(
+            .background.secondary,
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .opacity(isFullyRefunded ? 0.7 : 1)
+    }
+
+    private func toggleItem(
+        _ item: MenuItem
+    ) {
+        guard item.activeQuantity > 0 else {
+            return
+        }
+        activeRefundRequestId = nil
+        if selectedItemIDs.contains(item.id) {
+            selectedItemIDs.remove(item.id)
+            refundQuantities[item.id] = nil
+        } else {
+            selectedItemIDs.insert(item.id)
+            refundQuantities[item.id] = 1
+        }
+    }
+
+    private func quantityBinding(
+        for item: MenuItem
+    ) -> Binding<Int> {
+        Binding(
+            get: {
+                refundQuantities[item.id] ?? 1
+            },
+            set: { newValue in
+                activeRefundRequestId = nil
+                refundQuantities[item.id] =
+                    newValue
+            }
+        )
+    }
+
+    private var refundConfirmationMessage: String {
+        let selectedItems =
+            row.studentOrder.items.filter {
+                selectedItemIDs.contains($0.id)
+            }
+
+        let descriptions =
+            selectedItems.map { item in
+                let quantity =
+                    refundQuantities[item.id] ?? 1
+
+                return quantity == 1
+                    ? item.name
+                    : "\(quantity)x \(item.name)"
+            }
+
+        return """
+        You are about to refund:
+
+        \(descriptions.joined(separator: "\n"))
+
+        This will issue a real Stripe refund. This cannot be undone.
+        """
+    }
+
+    @MainActor
+    private func performRefund() async {
+
+        guard !isRefunding else {
+            return
+        }
+
+        guard let orderId =
+                row.firebaseDocumentID else {
+            refundError =
+                "This order does not have a Firebase order ID."
+            return
+        }
+
+        let selectedItems =
+            row.studentOrder.items.filter {
+                selectedItemIDs.contains($0.id)
+            }
+
+        var refundItems:
+            [(itemId: String, quantity: Int)] = []
+
+        for item in selectedItems {
+
+            guard let firebaseItemID =
+                    item.firebaseOrderItemID else {
+                refundError =
+                    "\(item.name) does not have a Firebase order item ID."
+                return
+            }
+
+            let quantity =
+                refundQuantities[item.id] ?? 1
+
+            refundItems.append(
+                (
+                    itemId: firebaseItemID,
+                    quantity: quantity
+                )
+            )
+        }
+
+        guard !refundItems.isEmpty else {
+            refundError =
+                "No refundable items were selected."
+            return
+        }
+
+        let refundRequestId: String
+
+        if let existingRequestId =
+            activeRefundRequestId {
+
+            refundRequestId =
+                existingRequestId
+
+        } else {
+
+            let newRequestId =
+                UUID().uuidString
+
+            activeRefundRequestId =
+                newRequestId
+
+            refundRequestId =
+                newRequestId
+        }
+
+        isRefunding = true
+        refundError = nil
+
+        do {
+            let service = FirebaseOrderService()
+
+            let result =
+                try await service.refundOrderItems(
+                    orderId: orderId,
+                    refundRequestId: refundRequestId,
+                    items: refundItems
+                )
+
+            let amount =
+                (result["refundAmount"] as? NSNumber)?
+                    .doubleValue ?? 0
+
+            print(
+                "✅ ITEM REFUND SUCCESS:",
+                String(format: "$%.2f", amount)
+            )
+
+            activeRefundRequestId = nil
+            isRefunding = false
+            dismiss()
+
+        } catch {
+            isRefunding = false
+            refundError =
+                error.localizedDescription
+        }
+    }
+
+    }
 private struct DetailRow: View {
     var title: String
     var value: String

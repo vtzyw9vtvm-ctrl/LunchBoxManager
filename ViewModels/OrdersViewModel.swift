@@ -395,13 +395,56 @@ final class OrdersViewModel {
         }
         selectedRowID = flattenedRows.first?.id
     }
+    var activeDeliveryDate: Date {
+        let calendar = Calendar.current
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
 
+        func nextWeekday(after date: Date) -> Date {
+            var nextDate = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: date
+            )!
+
+            while calendar.component(.weekday, from: nextDate) == 1 ||
+                  calendar.component(.weekday, from: nextDate) == 7 {
+                nextDate = calendar.date(
+                    byAdding: .day,
+                    value: 1,
+                    to: nextDate
+                )!
+            }
+
+            return nextDate
+        }
+
+        let todayAt2PM = calendar.date(
+            bySettingHour: 14,
+            minute: 0,
+            second: 0,
+            of: today
+        )!
+
+        if now >= todayAt2PM {
+            return nextWeekday(after: today)
+        }
+
+        let weekday = calendar.component(
+            .weekday,
+            from: today
+        )
+
+        if weekday == 1 || weekday == 7 {
+            return nextWeekday(after: today)
+        }
+
+        return today
+    }
+    
     private var flattenedRows: [OrderBrowserRow] {
-
         orders.flatMap { order in
-
             order.studentOrders.map { studentOrder in
-
                 OrderBrowserRow(
                     orderID: order.id,
                     firebaseDocumentID: order.firebaseDocumentID,
@@ -409,6 +452,7 @@ final class OrdersViewModel {
                     school: order.school,
                     orderDate: order.orderDate,
                     deliveryDate: order.deliveryDate,
+                    status: order.status,
                     notes: order.notes,
                     studentOrder: studentOrder
                 )
@@ -416,29 +460,105 @@ final class OrdersViewModel {
         }
     }
     private func matchesDate(_ row: OrderBrowserRow) -> Bool {
-
         let calendar = Calendar.current
-        let deliveryDate = row.deliveryDate
+        let now = Date()
 
-        switch dateView {
+        let today = calendar.startOfDay(for: now)
 
-        case .today:
-            return calendar.isDateInToday(deliveryDate)
+        // The cafe's operational lunch day rolls over at 2:00 PM.
+        //
+        // Before 2 PM:
+        // Today = today's deliveries
+        //
+        // From 2 PM onward:
+        // Today = tomorrow's deliveries
+        let todayAt2PM = calendar.date(
+            bySettingHour: 14,
+            minute: 0,
+            second: 0,
+            of: today
+        )!
 
-        case .upcoming:
-            let tomorrow = calendar.date(
+        func nextWeekday(after date: Date) -> Date {
+            var nextDate = calendar.date(
                 byAdding: .day,
                 value: 1,
-                to: calendar.startOfDay(for: Date())
+                to: date
             )!
 
-            return deliveryDate >= tomorrow
+            while calendar.component(
+                .weekday,
+                from: nextDate
+            ) == 1 ||
+            calendar.component(
+                .weekday,
+                from: nextDate
+            ) == 7 {
+                nextDate = calendar.date(
+                    byAdding: .day,
+                    value: 1,
+                    to: nextDate
+                )!
+            }
 
-        case .history:
-            return deliveryDate < calendar.startOfDay(for: Date())
-
+            return nextDate
         }
 
+        let activeDeliveryDay: Date
+
+        if now >= todayAt2PM {
+            activeDeliveryDay = nextWeekday(after: today)
+        } else {
+            // If the Manager is opened on a weekend,
+            // show Monday as the active lunch day.
+            let weekday = calendar.component(
+                .weekday,
+                from: today
+            )
+
+            if weekday == 1 || weekday == 7 {
+                activeDeliveryDay = nextWeekday(after: today)
+            } else {
+                activeDeliveryDay = today
+            }
+        }
+
+        let nextDeliveryDay =
+            nextWeekday(after: activeDeliveryDay)
+
+        let deliveryDay = calendar.startOfDay(
+            for: row.deliveryDate
+        )
+
+        switch dateView {
+        case .today:
+            // Cancelled orders should no longer appear in today's
+            // production list, even if their delivery date is today.
+            guard row.status != .cancelled else {
+                return false
+            }
+
+            return deliveryDay == activeDeliveryDay
+
+        case .upcoming:
+            // Cancelled future orders belong in History rather
+            // than Upcoming.
+            guard row.status != .cancelled else {
+                return false
+            }
+
+            return deliveryDay >= nextDeliveryDay
+
+        case .history:
+            // A cancelled order is still an important business record.
+            // Show it in History immediately, even if its delivery
+            // date is today or in the future.
+            if row.status == .cancelled {
+                return true
+            }
+
+            return deliveryDay < activeDeliveryDay
+        }
     }
     private func matchesSearch(_ row: OrderBrowserRow) -> Bool {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -481,6 +601,8 @@ struct OrderBrowserRow: Identifiable, Hashable, Sendable {
     var orderDate: Date
 
     var deliveryDate: Date
+
+    var status: LunchOrderStatus
 
     var notes: String?
 

@@ -4,6 +4,12 @@ struct ModifierGroup: Identifiable, Codable, Hashable {
 
     var id = UUID()
     var name: String
+
+    /// The simple name shown to parents in the LunchBox app.
+    /// Example: Manager name = "Burger Extras"
+    /// Parent name = "Extras"
+    var customerName: String
+
     var minimumSelections: Int = 0
     var maximumSelections: Int = 99
     var useRadioButtons: Bool = false
@@ -19,6 +25,7 @@ struct ModifierGroup: Identifiable, Codable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id
         case name
+        case customerName
         case minimumSelections
         case maximumSelections
         case useRadioButtons
@@ -31,6 +38,7 @@ struct ModifierGroup: Identifiable, Codable, Hashable {
     init(
         id: UUID = UUID(),
         name: String,
+        customerName: String = "",
         minimumSelections: Int = 0,
         maximumSelections: Int = 99,
         useRadioButtons: Bool = false,
@@ -39,6 +47,7 @@ struct ModifierGroup: Identifiable, Codable, Hashable {
     ) {
         self.id = id
         self.name = name
+        self.customerName = customerName
         self.minimumSelections = minimumSelections
         self.maximumSelections = maximumSelections
         self.useRadioButtons = useRadioButtons
@@ -63,6 +72,11 @@ struct ModifierGroup: Identifiable, Codable, Hashable {
             String.self,
             forKey: .name
         ) ?? "Modifier Group"
+
+        customerName = try container.decodeIfPresent(
+            String.self,
+            forKey: .customerName
+        ) ?? name
 
         minimumSelections = try container.decodeIfPresent(
             Int.self,

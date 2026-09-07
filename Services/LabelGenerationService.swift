@@ -25,7 +25,10 @@ struct LabelGenerationService {
 
         for order in orders {
             for studentOrder in order.studentOrders {
-                let matchingItems = studentOrder.items.filter { mode.includes($0, service: self) }
+                let matchingItems = studentOrder.items.filter { item in
+                    item.activeQuantity > 0 &&
+                    mode.includes(item, service: self)
+                }
                 guard !matchingItems.isEmpty else { continue }
 
                 labels.append(
@@ -434,7 +437,7 @@ struct LabelGenerationService {
         for item in items {
 
             y = drawLabelLine(
-                "- \(item.quantity) x \(item.name)",
+                "- \(item.activeQuantity) x \(item.name)",
                 font: .boldSystemFont(ofSize: 11),
                 x: margin,
                 y: y,

@@ -3,23 +3,36 @@ import Foundation
 struct LunchMenuItem: Identifiable, Codable, Hashable {
 
     var id = UUID()
+
     var sortOrder: Int = 0
+
     var name: String
+
     var description: String
+
     var category: String = ""
+
     var price: Double
+
     var costPrice: Double = 0
+
     var gstIncluded = true
+
     var isActive = true
+
     var isSoldOut = false
+
     var isFeatured = false
 
     /// Allows the parent to enter special instructions for this item.
     var allowNotes: Bool = true
 
     var imageName: String = ""
+
     var imageURL: String = ""
+
     var lastEdited = Date()
+
     var modifierGroups: [UUID] = []
 
     // MARK: - Production / Labels
@@ -30,9 +43,24 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
     /// Also requires a separate cold-item label.
     var isCold: Bool = false
 
+    // MARK: - Dietary Information
+
+    /// Item is suitable for a gluten-free diet.
+    var isGlutenFree: Bool = false
+
+    /// Item is vegan.
+    var isVegan: Bool = false
+
+    /// Item is vegetarian.
+    var isVegetarian: Bool = false
+
+    /// Item is halal.
+    var isHalal: Bool = false
+
     // MARK: - Codable
 
     enum CodingKeys: String, CodingKey {
+
         case id
         case sortOrder
         case name
@@ -51,6 +79,11 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
         case modifierGroups
         case isHot
         case isCold
+
+        case isGlutenFree
+        case isVegan
+        case isVegetarian
+        case isHalal
     }
 
     init(
@@ -71,7 +104,11 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
         lastEdited: Date = Date(),
         modifierGroups: [UUID] = [],
         isHot: Bool = true,
-        isCold: Bool = false
+        isCold: Bool = false,
+        isGlutenFree: Bool = false,
+        isVegan: Bool = false,
+        isVegetarian: Bool = false,
+        isHalal: Bool = false
     ) {
         self.id = id
         self.sortOrder = sortOrder
@@ -91,31 +128,132 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
         self.modifierGroups = modifierGroups
         self.isHot = isHot
         self.isCold = isCold
+
+        self.isGlutenFree = isGlutenFree
+        self.isVegan = isVegan
+        self.isVegetarian = isVegetarian
+        self.isHalal = isHalal
     }
 
     init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
-        sortOrder = try container.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
-        name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
-        category = try container.decodeIfPresent(String.self, forKey: .category) ?? ""
-        price = try container.decodeIfPresent(Double.self, forKey: .price) ?? 0
-        costPrice = try container.decodeIfPresent(Double.self, forKey: .costPrice) ?? 0
-        gstIncluded = try container.decodeIfPresent(Bool.self, forKey: .gstIncluded) ?? true
-        isActive = try container.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
-        isSoldOut = try container.decodeIfPresent(Bool.self, forKey: .isSoldOut) ?? false
-        isFeatured = try container.decodeIfPresent(Bool.self, forKey: .isFeatured) ?? false
+        let container = try decoder.container(
+            keyedBy: CodingKeys.self
+        )
+
+        id = try container.decodeIfPresent(
+            UUID.self,
+            forKey: .id
+        ) ?? UUID()
+
+        sortOrder = try container.decodeIfPresent(
+            Int.self,
+            forKey: .sortOrder
+        ) ?? 0
+
+        name = try container.decode(
+            String.self,
+            forKey: .name
+        )
+
+        description = try container.decodeIfPresent(
+            String.self,
+            forKey: .description
+        ) ?? ""
+
+        category = try container.decodeIfPresent(
+            String.self,
+            forKey: .category
+        ) ?? ""
+
+        price = try container.decodeIfPresent(
+            Double.self,
+            forKey: .price
+        ) ?? 0
+
+        costPrice = try container.decodeIfPresent(
+            Double.self,
+            forKey: .costPrice
+        ) ?? 0
+
+        gstIncluded = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .gstIncluded
+        ) ?? true
+
+        isActive = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isActive
+        ) ?? true
+
+        isSoldOut = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isSoldOut
+        ) ?? false
+
+        isFeatured = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isFeatured
+        ) ?? false
 
         // Older saved menus won't contain this field.
-        allowNotes = try container.decodeIfPresent(Bool.self, forKey: .allowNotes) ?? true
+        allowNotes = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .allowNotes
+        ) ?? true
 
-        imageName = try container.decodeIfPresent(String.self, forKey: .imageName) ?? ""
-        imageURL = try container.decodeIfPresent(String.self, forKey: .imageURL) ?? ""
-        lastEdited = try container.decodeIfPresent(Date.self, forKey: .lastEdited) ?? Date()
-        modifierGroups = try container.decodeIfPresent([UUID].self, forKey: .modifierGroups) ?? []
-        isHot = try container.decodeIfPresent(Bool.self, forKey: .isHot) ?? true
-        isCold = try container.decodeIfPresent(Bool.self, forKey: .isCold) ?? false
+        imageName = try container.decodeIfPresent(
+            String.self,
+            forKey: .imageName
+        ) ?? ""
+
+        imageURL = try container.decodeIfPresent(
+            String.self,
+            forKey: .imageURL
+        ) ?? ""
+
+        lastEdited = try container.decodeIfPresent(
+            Date.self,
+            forKey: .lastEdited
+        ) ?? Date()
+
+        modifierGroups = try container.decodeIfPresent(
+            [UUID].self,
+            forKey: .modifierGroups
+        ) ?? []
+
+        isHot = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isHot
+        ) ?? true
+
+        isCold = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isCold
+        ) ?? false
+
+        // MARK: Dietary
+        // Older menu items won't contain these fields,
+        // so all four safely default to false.
+
+        isGlutenFree = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isGlutenFree
+        ) ?? false
+
+        isVegan = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isVegan
+        ) ?? false
+
+        isVegetarian = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isVegetarian
+        ) ?? false
+
+        isHalal = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isHalal
+        ) ?? false
     }
 }

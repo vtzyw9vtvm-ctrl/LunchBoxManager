@@ -57,6 +57,13 @@ struct KitchenProductionListService {
         for order in orders {
             for studentOrder in order.studentOrders {
                 for item in studentOrder.items {
+
+                    // Fully refunded items do not need
+                    // to be prepared.
+                    guard item.activeQuantity > 0 else {
+                        continue
+                    }
+
                     let itemName = productionItemName(for: item)
                     let itemKey = itemName.normalizedProductionText
                     displayNameByItem[itemKey] = itemName
@@ -65,7 +72,7 @@ struct KitchenProductionListService {
                             orderNumber: order.orderNumber,
                             studentName: displayStudentName(studentOrder.student.fullName),
                             className: displayClassName(studentOrder.schoolClass?.name ?? ""),
-                            quantity: item.quantity,
+                            quantity: item.activeQuantity,
                             instructions: productionInstructions(for: item)
                         )
                     )
