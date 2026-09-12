@@ -9,7 +9,6 @@ struct School: Identifiable, Codable, Hashable, Sendable {
     var shortName: String
 
     var isActive = true
-
     var orderCutoffTime = "8:30 AM"
     var deliveryTime = "12:30 PM"
 
@@ -18,9 +17,15 @@ struct School: Identifiable, Codable, Hashable, Sendable {
     /// Editable weekly lunch service rules.
     ///
     /// Each year level can have its own available weekdays.
-    /// These will eventually be synced to Firebase so the
-    /// parent app automatically follows the Manager settings.
+    /// These are synced to Firebase so the parent app
+    /// automatically follows the Manager settings.
     var orderingRules: [SchoolOrderingRule]
+
+    /// Dates when this school is not accepting lunch orders.
+    ///
+    /// A closure can represent a single day or a date range,
+    /// such as a curriculum day or school holidays.
+    var closures: [SchoolClosure]
 
     init(
         id: UUID = UUID(),
@@ -30,7 +35,8 @@ struct School: Identifiable, Codable, Hashable, Sendable {
         orderCutoffTime: String = "8:30 AM",
         deliveryTime: String = "12:30 PM",
         notes: String = "",
-        orderingRules: [SchoolOrderingRule] = []
+        orderingRules: [SchoolOrderingRule] = [],
+        closures: [SchoolClosure] = []
     ) {
         self.id = id
         self.name = name
@@ -40,6 +46,7 @@ struct School: Identifiable, Codable, Hashable, Sendable {
         self.deliveryTime = deliveryTime
         self.notes = notes
         self.orderingRules = orderingRules
+        self.closures = closures
     }
 
     // MARK: - Codable
@@ -53,9 +60,11 @@ struct School: Identifiable, Codable, Hashable, Sendable {
         case deliveryTime
         case notes
         case orderingRules
+        case closures
     }
 
     init(from decoder: Decoder) throws {
+
         let container = try decoder.container(
             keyedBy: CodingKeys.self
         )
@@ -95,13 +104,18 @@ struct School: Identifiable, Codable, Hashable, Sendable {
             forKey: .notes
         ) ?? ""
 
-        // Important:
-        // Existing saved schools do not contain this field.
-        // They will simply start with no rules rather than
-        // failing to load.
+        // Existing saved schools may not contain ordering rules.
+        // They will simply start with no rules.
         orderingRules = try container.decodeIfPresent(
             [SchoolOrderingRule].self,
             forKey: .orderingRules
+        ) ?? []
+
+        // Existing saved schools will not yet contain closures.
+        // They will simply start with no closures.
+        closures = try container.decodeIfPresent(
+            [SchoolClosure].self,
+            forKey: .closures
         ) ?? []
     }
 }
@@ -138,5 +152,46 @@ struct SchoolOrderingRule:
         self.id = id
         self.yearLevel = yearLevel
         self.weekdays = weekdays
+    }
+}
+
+
+// MARK: - School Closure
+
+struct SchoolClosure:
+    Identifiable,
+    Codable,
+    Hashable,
+    Sendable {
+
+    let id: UUID
+
+    /// First closed school day.
+    var startDate: Date
+
+    /// Last closed school day.
+    ///
+    /// For a single-day closure this is the same
+    /// date as startDate.
+    var endDate: Date
+
+    /// Optional explanation shown in Manager.
+    ///
+    /// Examples:
+    /// "School Holidays"
+    /// "Curriculum Day"
+    /// "School Event"
+    var reason: String
+
+    init(
+        id: UUID = UUID(),
+        startDate: Date,
+        endDate: Date,
+        reason: String = ""
+    ) {
+        self.id = id
+        self.startDate = startDate
+        self.endDate = endDate
+        self.reason = reason
     }
 }

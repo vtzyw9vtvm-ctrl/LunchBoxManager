@@ -657,7 +657,10 @@ struct OrdersView: View {
     @ViewBuilder
     private var selectedOrderDetail: some View {
         if let selectedRow = viewModel.selectedRow {
-            OrderDetailView(row: selectedRow)
+            OrderDetailView(
+                row: selectedRow,
+                allOrders: viewModel.allOrders
+            )
         }
     }
 }
@@ -665,8 +668,10 @@ struct OrdersView: View {
 private struct OrderDetailView: View {
 
     var row: OrderBrowserRow
+    var allOrders: [LunchOrder]
 
     @State private var showingRefundSheet = false
+    @State private var showingParentHistory = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -757,7 +762,20 @@ private struct OrderDetailView: View {
             Divider()
 
             HStack {
+
                 Spacer()
+
+                Button {
+                    showingParentHistory = true
+                } label: {
+                    Label(
+                        "Parent Order History",
+                        systemImage: "clock.arrow.circlepath"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .disabled(row.parentId == nil)
 
                 Button {
                     showingRefundSheet = true
@@ -788,9 +806,151 @@ private struct OrderDetailView: View {
         .sheet(isPresented: $showingRefundSheet) {
             RefundItemsSheet(row: row)
         }
+        .sheet(isPresented: $showingParentHistory) {
+            ParentOrderHistorySheet(
+                parentId: row.parentId,
+                parentEmail: row.parentEmail,
+                allOrders: allOrders
+            )
+        }
             }
 
         }
+
+private struct ParentOrderHistorySheet: View {
+    let parentId: String?
+    let parentEmail: String?
+    let allOrders: [LunchOrder]
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var parentOrders: [LunchOrder] {
+        guard let parentId, !parentId.isEmpty else {
+            return []
+        }
+
+        return allOrders
+            .filter { $0.parentId == parentId }
+            .sorted { $0.orderDate > $1.orderDate }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Parent Order History")
+                        .font(.title2.bold())
+
+                    if let parentEmail, !parentEmail.isEmpty {
+                        Text(parentEmail)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Button("Done") {
+                    dismiss()
+                }
+            }
+
+            Divider()
+
+            if parentOrders.isEmpty {
+                ContentUnavailableView(
+                    "No Previous Orders",
+                    systemImage: "clock.arrow.circlepath",
+                    description: Text(
+                        "No order history was found for this parent."
+                    )
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(parentOrders) { order in
+                            orderCard(order)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 760, minHeight: 500)
+    }
+
+    @ViewBuilder
+    private func orderCard(_ order: LunchOrder) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Order #\(formattedOrderNumber(order.orderNumber))")
+                    .font(.headline)
+
+                Spacer()
+
+                Text(
+                    order.deliveryDate.formatted(
+                        date: .abbreviated,
+                        time: .omitted
+                    )
+                )
+                .fontWeight(.semibold)
+            }
+
+            HStack(spacing: 20) {
+                Label(
+                    order.school.name,
+                    systemImage: "building.2"
+                )
+
+                Text(order.status.title)
+                    .foregroundStyle(.secondary)
+            }
+            .font(.subheadline)
+
+            ForEach(order.studentOrders) { studentOrder in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(studentOrder.student.fullName)
+                            .fontWeight(.semibold)
+
+                        if let schoolClass = studentOrder.schoolClass {
+                            Text("• \(schoolClass.name)")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    ForEach(studentOrder.items) { item in
+                        HStack(alignment: .top) {
+                            Text("\(item.quantity)×")
+                                .foregroundStyle(.secondary)
+                                .frame(width: 30, alignment: .trailing)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.name)
+
+                                if !item.variants.isEmpty {
+                                    Text(item.variants.joined(separator: ", "))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            .background.secondary,
+            in: RoundedRectangle(cornerRadius: 10)
+        )
+    }
+}
+
 private struct RefundItemsSheet: View {
 
     let row: OrderBrowserRow

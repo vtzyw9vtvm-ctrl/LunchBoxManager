@@ -191,6 +191,62 @@ struct SchoolInspector: View {
                 }
 
 
+                // MARK: - School Closures
+
+                SectionCard("No Lunch Days") {
+
+                    Text(
+                        "Block a single day or a date range "
+                        + "when lunch orders are unavailable."
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                    if school.closures.isEmpty {
+
+                        Divider()
+
+                        Text("No blocked dates.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                    } else {
+
+                        Divider()
+
+                        ForEach(
+                            Array(school.closures.enumerated()),
+                            id: \.element.id
+                        ) { index, _ in
+
+                            closureRow(index: index)
+
+                            if index < school.closures.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    Button {
+                        addClosure()
+                    } label: {
+                        Label(
+                            "Add No Lunch Day",
+                            systemImage: "plus"
+                        )
+                    }
+
+                    Text(
+                        "Parents will not be able to select "
+                        + "these dates for lunch orders."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
+
                 // MARK: - Notes
 
                 SectionCard("Notes") {
@@ -209,8 +265,202 @@ struct SchoolInspector: View {
                     )
                 }
             }
+
             .padding(24)
         }
+    }
+
+
+    // MARK: - Closure Row
+
+    @ViewBuilder
+    private func closureRow(
+        index: Int
+    ) -> some View {
+
+        VStack(alignment: .leading, spacing: 10) {
+
+            HStack {
+
+                Text("From")
+                    .frame(
+                        width: 55,
+                        alignment: .leading
+                    )
+
+                DatePicker(
+                    "",
+                    selection: closureStartBinding(
+                        index: index
+                    ),
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+
+                Spacer()
+            }
+
+            HStack {
+
+                Text("To")
+                    .frame(
+                        width: 55,
+                        alignment: .leading
+                    )
+
+                DatePicker(
+                    "",
+                    selection: closureEndBinding(
+                        index: index
+                    ),
+                    in: school.closures[index].startDate...,
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+
+                Spacer()
+            }
+
+            HStack {
+
+                Text("Reason")
+                    .frame(
+                        width: 55,
+                        alignment: .leading
+                    )
+
+                TextField(
+                    "e.g. School Holidays",
+                    text: closureReasonBinding(
+                        index: index
+                    )
+                )
+                .textFieldStyle(.roundedBorder)
+
+                Button(role: .destructive) {
+                    removeClosure(at: index)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .help("Delete no lunch day")
+            }
+        }
+    }
+
+
+    // MARK: - Closure Bindings
+
+    private func closureStartBinding(
+        index: Int
+    ) -> Binding<Date> {
+
+        Binding(
+
+            get: {
+                school.closures[index].startDate
+            },
+
+            set: { newDate in
+
+                var updatedSchool = school
+
+                updatedSchool.closures[index].startDate =
+                    newDate
+
+                if updatedSchool.closures[index].endDate
+                    < newDate {
+
+                    updatedSchool.closures[index].endDate =
+                        newDate
+                }
+
+                school = updatedSchool
+            }
+        )
+    }
+
+
+    private func closureEndBinding(
+        index: Int
+    ) -> Binding<Date> {
+
+        Binding(
+
+            get: {
+                school.closures[index].endDate
+            },
+
+            set: { newDate in
+
+                var updatedSchool = school
+
+                updatedSchool.closures[index].endDate =
+                    newDate
+
+                school = updatedSchool
+            }
+        )
+    }
+
+
+    private func closureReasonBinding(
+        index: Int
+    ) -> Binding<String> {
+
+        Binding(
+
+            get: {
+                school.closures[index].reason
+            },
+
+            set: { newReason in
+
+                var updatedSchool = school
+
+                updatedSchool.closures[index].reason =
+                    newReason
+
+                school = updatedSchool
+            }
+        )
+    }
+
+
+    // MARK: - Closure Actions
+
+    private func addClosure() {
+
+        var updatedSchool = school
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(
+            for: Date()
+        )
+
+        updatedSchool.closures.append(
+            SchoolClosure(
+                startDate: today,
+                endDate: today
+            )
+        )
+
+        school = updatedSchool
+    }
+
+
+    private func removeClosure(
+        at index: Int
+    ) {
+
+        guard school.closures.indices.contains(index)
+        else {
+            return
+        }
+
+        var updatedSchool = school
+        updatedSchool.closures.remove(at: index)
+        school = updatedSchool
     }
 
 
@@ -225,20 +475,23 @@ struct SchoolInspector: View {
 
             get: {
 
-                guard let rule = school.orderingRules.first(
-                    where: {
-                        $0.yearLevel == yearLevel
-                    }
-                ) else {
+                guard let rule =
+                    school.orderingRules.first(
+                        where: {
+                            $0.yearLevel == yearLevel
+                        }
+                    )
+                else {
                     return false
                 }
 
-                return rule.weekdays.contains(weekday)
+                return rule.weekdays.contains(
+                    weekday
+                )
             },
 
             set: { isEnabled in
 
-                // Make a complete copy first.
                 var updatedSchool = school
 
                 if let index =
@@ -273,8 +526,6 @@ struct SchoolInspector: View {
                     )
                 }
 
-                // Assign the whole School back through
-                // the @Binding.
                 school = updatedSchool
             }
         )
@@ -285,6 +536,7 @@ struct SchoolInspector: View {
 #Preview {
 
     @Previewable
+
     @State var school = School(
         name: "Burnside Primary School",
         shortName: "BPS"

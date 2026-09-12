@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct SettingsView: View {
 
@@ -18,6 +19,14 @@ struct SettingsView: View {
 
     @State private var modifierManager = ModifierManager()
 
+    // MARK: - Account
+
+    @State private var showChangePassword = false
+    @State private var newPassword = ""
+    @State private var confirmPassword = ""
+    @State private var passwordMessage: String?
+    @State private var isChangingPassword = false
+    
     private let firebaseMenuService = FirebaseMenuService()
 
     var body: some View {
@@ -110,51 +119,51 @@ struct SettingsView: View {
                     )
                     
                     // MARK: - Modifier Data
-                    
+
                     VStack(alignment: .leading, spacing: 16) {
-                        
+
                         Label(
                             "Modifier Data",
                             systemImage: "slider.horizontal.3"
                         )
                         .font(.title2.bold())
-                        
+
                         Text(
                             "Recover modifier groups from the currently published Firebase menu."
                         )
                         .foregroundStyle(.secondary)
-                        
+
                         Divider()
-                        
+
                         HStack {
-                            
+
                             VStack(alignment: .leading, spacing: 5) {
-                                
+
                                 Text(
                                     "Restore Modifier Groups from Firebase"
                                 )
                                 .font(.headline)
-                                
+
                                 Text(
                                     "Replace the modifier groups stored on this Mac with the groups found in the published Firebase menu."
                                 )
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                             }
-                            
+
                             Spacer()
-                            
+
                             Button {
                                 showModifierRestoreConfirmation = true
                             } label: {
-                                
+
                                 if isRestoringModifiers {
-                                    
+
                                     ProgressView()
                                         .controlSize(.small)
-                                    
+
                                 } else {
-                                    
+
                                     Label(
                                         "Restore Modifiers",
                                         systemImage: "icloud.and.arrow.down"
@@ -163,11 +172,11 @@ struct SettingsView: View {
                             }
                             .disabled(isRestoringModifiers)
                         }
-                        
+
                         if let modifierRestoreMessage {
-                            
+
                             Divider()
-                            
+
                             Text(modifierRestoreMessage)
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
@@ -182,7 +191,74 @@ struct SettingsView: View {
                                 )
                             )
                     )
-                    
+
+
+                    // MARK: - Account
+
+                    VStack(alignment: .leading, spacing: 16) {
+
+                        Label(
+                            "Account",
+                            systemImage: "person.crop.circle"
+                        )
+                        .font(.title2.bold())
+
+                        Text(
+                            "Manage the LunchBoxManager account."
+                        )
+                        .foregroundStyle(.secondary)
+
+                        Divider()
+
+                        HStack {
+
+                            VStack(alignment: .leading, spacing: 5) {
+
+                                Text("Signed In As")
+                                    .font(.headline)
+
+                                Text(
+                                    Auth.auth().currentUser?.email
+                                        ?? "Unknown account"
+                                )
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                newPassword = ""
+                                confirmPassword = ""
+                                passwordMessage = nil
+                                showChangePassword = true
+                            } label: {
+
+                                Label(
+                                    "Change Password",
+                                    systemImage: "key"
+                                )
+                            }
+                        }
+
+                        if let passwordMessage {
+
+                            Divider()
+
+                            Text(passwordMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                Color(
+                                    nsColor: .controlBackgroundColor
+                                )
+                            )
+                    )
                     Spacer()
                 }
                 .padding(30)
@@ -190,6 +266,53 @@ struct SettingsView: View {
             }
         }
 
+        .sheet(isPresented: $showChangePassword) {
+
+            VStack(alignment: .leading, spacing: 18) {
+
+                Text("Change Password")
+                    .font(.title2.bold())
+
+                Text(
+                    "Enter a new password for your LunchBoxManager account."
+                )
+                .foregroundStyle(.secondary)
+
+                SecureField(
+                    "New Password",
+                    text: $newPassword
+                )
+                .textFieldStyle(.roundedBorder)
+
+                SecureField(
+                    "Confirm New Password",
+                    text: $confirmPassword
+                )
+                .textFieldStyle(.roundedBorder)
+
+                HStack {
+
+                    Button("Cancel") {
+                        showChangePassword = false
+                    }
+
+                    Spacer()
+
+                    Button("Change Password") {
+                        changePassword()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(
+                        newPassword.isEmpty ||
+                        confirmPassword.isEmpty ||
+                        isChangingPassword
+                    )
+                }
+            }
+            .padding(24)
+            .frame(width: 420)
+        }
+        
         // MARK: - Restore Menu Confirmation
 
         .confirmationDialog(
@@ -308,8 +431,72 @@ struct SettingsView: View {
             )
         }
     }
+    
+
+
+private func changePassword() {
+
+passwordMessage = nil
+
+guard newPassword.count >= 6 else {
+    passwordMessage =
+        "Password must be at least 6 characters."
+    return
 }
 
+guard newPassword == confirmPassword else {
+    passwordMessage =
+        "The passwords do not match."
+    return
+}
+
+guard let user = Auth.auth().currentUser else {
+    passwordMessage =
+        "No Manager account is currently signed in."
+    return
+}
+
+isChangingPassword = true
+
+user.updatePassword(
+    to: newPassword
+) { error in
+
+    DispatchQueue.main.async {
+
+        isChangingPassword = false
+
+        if let error {
+
+            let nsError = error as NSError
+
+            if nsError.code ==
+                AuthErrorCode.requiresRecentLogin.rawValue {
+
+                passwordMessage =
+                    "For security, please sign out and sign in again before changing your password."
+
+            } else {
+
+                passwordMessage =
+                    "Password change failed: \(error.localizedDescription)"
+            }
+
+            return
+        }
+
+        passwordMessage =
+            "Password changed successfully."
+
+        newPassword = ""
+        confirmPassword = ""
+        showChangePassword = false
+    }
+}
+}
+
+}  // ← your existing line 430
+
 #Preview {
-    SettingsView()
+SettingsView()
 }

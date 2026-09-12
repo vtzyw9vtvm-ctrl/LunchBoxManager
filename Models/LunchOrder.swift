@@ -18,6 +18,12 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
     /// One checkout may contain lunch orders for multiple children.
     var studentOrders: [StudentOrder]
 
+    /// Firebase UID of the parent who placed the order.
+    var parentId: String?
+
+    /// Email address of the parent who placed the order.
+    var parentEmail: String?
+    
     /// When the parent placed the order.
     var orderDate: Date
 
@@ -35,6 +41,8 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
         orderNumber: String,
         school: School,
         studentOrders: [StudentOrder],
+        parentId: String? = nil,
+        parentEmail: String? = nil,
         orderDate: Date,
         deliveryDate: Date? = nil,
         status: LunchOrderStatus = .new,
@@ -45,6 +53,8 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
         self.orderNumber = orderNumber
         self.school = school
         self.studentOrders = studentOrders
+        self.parentId = parentId
+        self.parentEmail = parentEmail
         self.orderDate = orderDate
 
         // Keeps existing/sample orders working while we transition

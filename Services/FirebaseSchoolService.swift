@@ -17,6 +17,19 @@ final class FirebaseSchoolService {
             ] as [String: Any]
         }
 
+        let closures = school.closures.map { closure in
+            [
+                "id": closure.id.uuidString,
+                "startDate": dateString(
+                    from: closure.startDate
+                ),
+                "endDate": dateString(
+                    from: closure.endDate
+                ),
+                "reason": closure.reason
+            ] as [String: Any]
+        }
+
         try await db
             .collection("schools")
             .document(school.id.uuidString)
@@ -30,11 +43,13 @@ final class FirebaseSchoolService {
                     "deliveryTime": school.deliveryTime,
                     "notes": school.notes,
                     "orderingRules": orderingRules,
+                    "closures": closures,
                     "updatedAt": FieldValue.serverTimestamp()
                 ],
                 merge: true
             )
     }
+
 
     // MARK: - Save All Schools
 
@@ -43,5 +58,33 @@ final class FirebaseSchoolService {
         for school in schools {
             try await saveSchool(school)
         }
+    }
+
+
+    // MARK: - Date Formatting
+
+    private func dateString(
+        from date: Date
+    ) -> String {
+
+        let formatter = DateFormatter()
+
+        formatter.calendar = Calendar(
+            identifier: .gregorian
+        )
+
+        formatter.locale = Locale(
+            identifier: "en_US_POSIX"
+        )
+
+        formatter.timeZone = TimeZone(
+            identifier: "Australia/Melbourne"
+        )
+
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        return formatter.string(
+            from: date
+        )
     }
 }

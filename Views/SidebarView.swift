@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import FirebaseFirestore
+import FirebaseAuth
 
 struct SidebarView: View {
 
@@ -14,6 +15,7 @@ struct SidebarView: View {
         case cafe
         case inventory
         case reports
+        case users
         case settings
     }
 
@@ -176,10 +178,31 @@ struct SidebarView: View {
                         .tag(Destination.reports)
                         
                         Label(
+                            "Users",
+                            systemImage: "person.2"
+                        )
+                        .tag(Destination.users)
+                        
+                        Label(
                             "Settings",
                             systemImage: "gearshape"
                         )
                         .tag(Destination.settings)
+                    }
+                    
+                    Section {
+                        Button(role: .destructive) {
+                            do {
+                                try Auth.auth().signOut()
+                            } catch {
+                                print("Sign out failed:", error)
+                            }
+                        } label: {
+                            Label(
+                                "Sign Out",
+                                systemImage: "rectangle.portrait.and.arrow.right"
+                            )
+                        }
                     }
                 }
                 .navigationTitle("LunchBoxManager")
@@ -231,11 +254,12 @@ struct SidebarView: View {
                     Text("Inventory")
                     
                 case .reports:
-                    
                     Text("Reports")
-                    
+
+                case .users:
+                    UsersView()
+
                 case .settings:
-                    
                     SettingsView()
                     
                 case nil:

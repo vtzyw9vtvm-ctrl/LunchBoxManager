@@ -453,6 +453,8 @@ final class OrdersViewModel {
                     orderDate: order.orderDate,
                     deliveryDate: order.deliveryDate,
                     status: order.status,
+                    parentId: order.parentId,
+                    parentEmail: order.parentEmail,
                     notes: order.notes,
                     studentOrder: studentOrder
                 )
@@ -603,6 +605,10 @@ struct OrderBrowserRow: Identifiable, Hashable, Sendable {
     var deliveryDate: Date
 
     var status: LunchOrderStatus
+
+    var parentId: String?
+
+    var parentEmail: String?
 
     var notes: String?
 

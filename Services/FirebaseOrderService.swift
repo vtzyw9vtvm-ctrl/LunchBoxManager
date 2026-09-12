@@ -73,7 +73,10 @@ final class FirebaseOrderService {
             
             let firstName = data["firstName"] as? String ?? ""
             let lastName = data["lastName"] as? String ?? ""
-            
+
+            let parentId = data["parentId"] as? String
+            let parentEmail = data["parentEmail"] as? String
+
             let foodAllergies = (
                 data["foodAllergies"] as? String ?? ""
             )
@@ -249,6 +252,8 @@ final class FirebaseOrderService {
                 orderNumber: orderNumber,
                 school: school,
                 studentOrders: [studentOrder],
+                parentId: parentId,
+                parentEmail: parentEmail,
                 orderDate: orderDate,
                 deliveryDate: deliveryDate,
                 status: lunchOrderStatus,
@@ -261,6 +266,17 @@ final class FirebaseOrderService {
         return lunchOrders.sorted {
             $0.orderDate > $1.orderDate
         }
+    }
+    
+    // MARK: - Parent Order History
+
+    func loadOrders(forParentId parentId: String) async throws -> [LunchOrder] {
+        let snapshot = try await db
+            .collection("orders")
+            .whereField("parentId", isEqualTo: parentId)
+            .getDocuments()
+
+        return try makeLunchOrders(from: snapshot.documents)
     }
     
     // MARK: - Live Orders

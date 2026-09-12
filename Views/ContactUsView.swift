@@ -152,6 +152,10 @@ struct ContactUsView: View {
                                 }
                             }
                         )
+                        .frame(
+                            minWidth: 420,
+                            idealWidth: 480
+                        )
 
                     } else {
 

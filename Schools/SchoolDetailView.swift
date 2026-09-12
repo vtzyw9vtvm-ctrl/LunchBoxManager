@@ -119,6 +119,7 @@ struct SchoolDetailView: View {
                     Divider()
 
                     // Column headings
+
                     HStack(spacing: 8) {
 
                         Text("Year Level")
@@ -188,9 +189,166 @@ struct SchoolDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
+
+
+                // MARK: - School Closures
+
+                SectionCard("School Closures / No Lunch Days") {
+
+                    Text(
+                        "Block individual days or date ranges "
+                        + "when lunch orders are not available."
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                    if school.closures.isEmpty {
+
+                        Divider()
+
+                        Text("No school closures have been added.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                    } else {
+
+                        Divider()
+
+                        ForEach(
+                            Array(school.closures.enumerated()),
+                            id: \.element.id
+                        ) { index, _ in
+
+                            closureRow(index: index)
+
+                            if index < school.closures.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+
+                    Divider()
+
+                    HStack {
+
+                        Button {
+                            addClosure()
+                        } label: {
+                            Label(
+                                "Add Closure",
+                                systemImage: "plus"
+                            )
+                        }
+
+                        Spacer()
+                    }
+
+                    Text(
+                        "Closed dates will not be available "
+                        + "for parents to select when ordering."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
+
             .padding(24)
         }
+    }
+
+
+    // MARK: - Closure Row
+
+    @ViewBuilder
+    private func closureRow(
+        index: Int
+    ) -> some View {
+
+        VStack(alignment: .leading, spacing: 12) {
+
+            HStack {
+
+                Text("Closed From")
+                    .frame(
+                        width: 110,
+                        alignment: .leading
+                    )
+
+                DatePicker(
+                    "",
+                    selection: $school.closures[index].startDate,
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+
+                Text("to")
+                    .foregroundStyle(.secondary)
+
+                DatePicker(
+                    "",
+                    selection: $school.closures[index].endDate,
+                    in: school.closures[index].startDate...,
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+
+                Spacer()
+
+                Button(role: .destructive) {
+                    removeClosure(at: index)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.borderless)
+                .help("Delete closure")
+            }
+
+            HStack {
+
+                Text("Reason")
+                    .frame(
+                        width: 110,
+                        alignment: .leading
+                    )
+
+                TextField(
+                    "e.g. School Holidays",
+                    text: $school.closures[index].reason
+                )
+                .textFieldStyle(.roundedBorder)
+            }
+        }
+    }
+
+
+    // MARK: - School Closures
+
+    private func addClosure() {
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(
+            for: Date()
+        )
+
+        let closure = SchoolClosure(
+            startDate: today,
+            endDate: today,
+            reason: ""
+        )
+
+        school.closures.append(closure)
+    }
+
+    private func removeClosure(
+        at index: Int
+    ) {
+
+        guard school.closures.indices.contains(index)
+        else {
+            return
+        }
+
+        school.closures.remove(at: index)
     }
 
 
