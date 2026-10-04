@@ -15,25 +15,65 @@ struct MenuItemCardView: View {
         HStack(spacing: 18) {
 
             Group {
-
                 if let image = ImageStorage.shared.loadImage(named: item.imageName) {
 
+                    // Use locally stored image when available
                     Image(nsImage: image)
                         .resizable()
                         .scaledToFill()
+
+                } else if !item.imageURL.isEmpty,
+                          let url = URL(string: item.imageURL) {
+
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+
+                        case .empty:
+                            ProgressView()
+
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                                .task {
+                                    do {
+                                        try await ImageStorage.shared
+                                            .cacheRemoteImage(
+                                                from: url,
+                                                named: item.imageName
+                                            )
+                                    } catch {
+                                        print(
+                                            "❌ IMAGE CACHE FAILED:",
+                                            item.name,
+                                            error.localizedDescription
+                                        )
+                                    }
+                                }
+
+                        case .failure:
+                            Image(systemName: "photo")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+
+                        @unknown default:
+                            Image(systemName: "photo")
+                                .font(.title2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
 
                 } else {
 
                     Image(systemName: "photo")
                         .font(.title2)
                         .foregroundStyle(.secondary)
-
                 }
-
             }
             .frame(width: 92, height: 92)
             .background(Color(.quaternarySystemFill))
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .clipped()
 
             VStack(alignment: .leading, spacing: 8) {
 

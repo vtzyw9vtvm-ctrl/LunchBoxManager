@@ -214,9 +214,9 @@ struct MenuWorkspaceView: View {
                 }
             }
                 
-            .frame(minWidth: 260,
-                   idealWidth: 280,
-                   maxWidth: 320)
+            .frame(minWidth: 200,
+                   idealWidth: 220,
+                   maxWidth: 260)
             
             // MARK: Menu Items
             
@@ -354,7 +354,7 @@ struct MenuWorkspaceView: View {
                 }
                 
             }
-            .frame(minWidth: 520,
+            .frame(minWidth: 400,
                    maxWidth: .infinity)
             
             // MARK: Inspector
@@ -510,28 +510,39 @@ struct MenuWorkspaceView: View {
             Text(publishMessage ?? "")
         }
         
-        .onAppear {
+        .task {
+            do {
+                let firebaseCategories = try await firebaseMenuService.loadMenu()
+                let firebaseModifierGroups = try await firebaseMenuService.loadModifierGroups()
 
-            guard selectedCategory == nil else { return }
+                if !firebaseCategories.isEmpty {
+                    menuManager.restoreMenu(firebaseCategories)
+                }
 
-            guard let firstCategory = menuManager.categories.first else { return }
+                if !firebaseModifierGroups.isEmpty {
+                    modifierManager.groups = firebaseModifierGroups
+                }
 
-            selectedCategory = firstCategory
+                selectedCategory = menuManager.categories.first
 
-            let items = menuManager.items(for: firstCategory)
+                if let firstCategory = selectedCategory {
+                    selectedItemID = menuManager.items(for: firstCategory).first?.id
+                }
 
-            if let first = items.first {
+                print("🔥 MENU LOADED FROM FIREBASE")
+                print("🔥 Categories:", menuManager.categories.count)
+                print("🔥 Items:", menuManager.totalMenuItems)
 
-                selectedItemID = first.id
+            } catch {
+                print("❌ FIREBASE MENU LOAD FAILED:", error.localizedDescription)
 
-            } else {
+                // Fall back to the locally saved menu if Firebase is unavailable.
+                selectedCategory = menuManager.categories.first
 
-                let newItem = menuManager.addItem(to: firstCategory)
-
-                selectedItemID = newItem.id
-
+                if let firstCategory = selectedCategory {
+                    selectedItemID = menuManager.items(for: firstCategory).first?.id
+                }
             }
-
         }
         
         .onChange(of: selectedCategory) {

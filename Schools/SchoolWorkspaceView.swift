@@ -5,6 +5,8 @@ struct SchoolsWorkspaceView: View {
     @State private var schoolsManager = SchoolsViewModel()
     @State private var classesManager = ClassesViewModel()
     @State private var studentsManager = StudentsViewModel()
+    private let firebaseSchoolService = FirebaseSchoolService()
+    private let firebaseClassService = FirebaseClassService()
 
     @State private var selectedSchool: School?
     @State private var selectedClass: SchoolClass?
@@ -159,12 +161,39 @@ struct SchoolsWorkspaceView: View {
             }
 
         }
-        .onAppear {
+        .task {
+            do {
+                let firebaseSchools =
+                    try await firebaseSchoolService.loadSchools()
 
-            if selectedSchool == nil {
+                let firebaseClasses =
+                    try await firebaseClassService.loadClasses()
+
+                if !firebaseSchools.isEmpty {
+                    schoolsManager.schools = firebaseSchools
+                }
+
+                if !firebaseClasses.isEmpty {
+                    classesManager.classes = firebaseClasses
+                }
+
                 selectedSchool = schoolsManager.schools.first
-            }
+                selectedClass = nil
 
+                print("🔥 SCHOOLS LOADED FROM FIREBASE")
+                print("🔥 Schools:", schoolsManager.schools.count)
+                print("🔥 Classes:", classesManager.classes.count)
+
+            } catch {
+                print(
+                    "❌ FIREBASE SCHOOLS LOAD FAILED:",
+                    error.localizedDescription
+                )
+
+                if selectedSchool == nil {
+                    selectedSchool = schoolsManager.schools.first
+                }
+            }
         }
         .onChange(of: selectedSchool) {
 

@@ -50,7 +50,119 @@ final class FirebaseSchoolService {
             )
     }
 
+    // MARK: - Load Schools
 
+    func loadSchools() async throws -> [School] {
+
+        let snapshot = try await db
+            .collection("schools")
+            .getDocuments()
+
+        var schools: [School] = []
+
+        for document in snapshot.documents {
+
+            let data = document.data()
+
+            guard
+                let idString = data["id"] as? String,
+                let id = UUID(uuidString: idString)
+            else {
+                continue
+            }
+
+            let orderingRuleData =
+                data["orderingRules"] as? [[String: Any]] ?? []
+
+            let orderingRules: [SchoolOrderingRule] =
+                orderingRuleData.map { ruleData in
+
+                    let yearLevel =
+                        ruleData["yearLevel"] as? String ?? ""
+
+                    let weekdayNumbers =
+                        ruleData["weekdays"] as? [Int] ?? []
+
+                    return SchoolOrderingRule(
+                        yearLevel: yearLevel,
+                        weekdays: Set(weekdayNumbers)
+                    )
+                }
+
+            let closureData =
+                data["closures"] as? [[String: Any]] ?? []
+
+            let closures: [SchoolClosure] =
+                closureData.compactMap { closureData in
+
+                    guard
+                        let startString =
+                            closureData["startDate"] as? String,
+                        let endString =
+                            closureData["endDate"] as? String,
+                        let startDate = date(
+                            from: startString
+                        ),
+                        let endDate = date(
+                            from: endString
+                        )
+                    else {
+                        return nil
+                    }
+
+                    let closureID: UUID
+
+                    if let idString =
+                        closureData["id"] as? String,
+                       let existingID =
+                        UUID(uuidString: idString) {
+
+                        closureID = existingID
+
+                    } else {
+
+                        closureID = UUID()
+                    }
+
+                    return SchoolClosure(
+                        id: closureID,
+                        startDate: startDate,
+                        endDate: endDate,
+                        reason:
+                            closureData["reason"] as? String ?? ""
+                    )
+                }
+
+            let school = School(
+                id: id,
+                name:
+                    data["name"] as? String ?? "",
+                shortName:
+                    data["shortName"] as? String ?? "",
+                isActive:
+                    data["isActive"] as? Bool ?? true,
+                orderCutoffTime:
+                    data["orderCutoffTime"] as? String
+                    ?? "8:30 AM",
+                deliveryTime:
+                    data["deliveryTime"] as? String
+                    ?? "12:30 PM",
+                notes:
+                    data["notes"] as? String ?? "",
+                orderingRules: orderingRules,
+                closures: closures
+            )
+
+            schools.append(school)
+        }
+
+        return schools.sorted {
+            $0.name.localizedCaseInsensitiveCompare(
+                $1.name
+            ) == .orderedAscending
+        }
+    }
+    
     // MARK: - Save All Schools
 
     func saveSchools(_ schools: [School]) async throws {
@@ -85,6 +197,31 @@ final class FirebaseSchoolService {
 
         return formatter.string(
             from: date
+        )
+    }
+    
+    private func date(
+        from string: String
+    ) -> Date? {
+
+        let formatter = DateFormatter()
+
+        formatter.calendar = Calendar(
+            identifier: .gregorian
+        )
+
+        formatter.locale = Locale(
+            identifier: "en_US_POSIX"
+        )
+
+        formatter.timeZone = TimeZone(
+            identifier: "Australia/Melbourne"
+        )
+
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        return formatter.date(
+            from: string
         )
     }
 }

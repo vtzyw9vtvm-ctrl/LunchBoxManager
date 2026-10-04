@@ -57,6 +57,19 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
     /// Item is halal.
     var isHalal: Bool = false
 
+    // MARK: - Multi-Buy Pricing
+
+    /// Enables special quantity pricing for this item.
+    /// Example: 2 for $3.50.
+    var multiBuyEnabled: Bool = false
+
+    /// Number of items required to receive the deal.
+    var multiBuyQuantity: Int = 2
+
+    /// Total price for one complete multi-buy group.
+    /// Example: 3.50 means 2 items cost $3.50.
+    var multiBuyPrice: Double = 0
+
     // MARK: - Codable
 
     enum CodingKeys: String, CodingKey {
@@ -84,6 +97,10 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
         case isVegan
         case isVegetarian
         case isHalal
+
+        case multiBuyEnabled
+        case multiBuyQuantity
+        case multiBuyPrice
     }
 
     init(
@@ -108,7 +125,10 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
         isGlutenFree: Bool = false,
         isVegan: Bool = false,
         isVegetarian: Bool = false,
-        isHalal: Bool = false
+        isHalal: Bool = false,
+        multiBuyEnabled: Bool = false,
+        multiBuyQuantity: Int = 2,
+        multiBuyPrice: Double = 0
     ) {
         self.id = id
         self.sortOrder = sortOrder
@@ -133,6 +153,10 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
         self.isVegan = isVegan
         self.isVegetarian = isVegetarian
         self.isHalal = isHalal
+
+        self.multiBuyEnabled = multiBuyEnabled
+        self.multiBuyQuantity = multiBuyQuantity
+        self.multiBuyPrice = multiBuyPrice
     }
 
     init(from decoder: Decoder) throws {
@@ -255,5 +279,22 @@ struct LunchMenuItem: Identifiable, Codable, Hashable {
             Bool.self,
             forKey: .isHalal
         ) ?? false
+        // MARK: Multi-Buy Pricing
+        // Older menu items won't contain these fields.
+
+        multiBuyEnabled = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .multiBuyEnabled
+        ) ?? false
+
+        multiBuyQuantity = try container.decodeIfPresent(
+            Int.self,
+            forKey: .multiBuyQuantity
+        ) ?? 2
+
+        multiBuyPrice = try container.decodeIfPresent(
+            Double.self,
+            forKey: .multiBuyPrice
+        ) ?? 0
     }
 }

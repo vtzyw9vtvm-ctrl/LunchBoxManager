@@ -37,7 +37,6 @@ struct OrdersView: View {
     }
 
     var body: some View {
-
         VStack(spacing: 0) {
 
             PageBannerView(
@@ -60,7 +59,7 @@ struct OrdersView: View {
                 summaryStatistics
 
                 ordersTable
-                    .frame(minHeight: 220)
+                    .frame(minHeight: 120, idealHeight: 300, maxHeight: 420)
 
                 selectedOrderDetail
 
@@ -69,10 +68,6 @@ struct OrdersView: View {
 
         }
         .navigationTitle("Orders")
-        .searchable(
-            text: $viewModel.searchText,
-            prompt: "Student, order number, or menu item"
-        )
         .task {
             await loadFirebaseOrders()
             startListeningForOrders()
@@ -528,10 +523,10 @@ struct OrdersView: View {
 
             // MARK: Order Number
 
-            TableColumn("Order Number") { row in
+            TableColumn("Order No.") { row in
                 Text(formattedOrderNumber(row.orderNumber))
             }
-            .width(min: 90, ideal: 100)
+            .width(min: 60, ideal: 60)
 
 
             // MARK: Date
@@ -545,7 +540,7 @@ struct OrdersView: View {
                     )
                 )
             }
-            .width(min: 60, ideal: 70)
+            .width(min: 50, ideal: 50)
 
 
             // MARK: Student
@@ -553,7 +548,7 @@ struct OrdersView: View {
             TableColumn("Student") { row in
                 Text(row.studentOrder.student.fullName)
             }
-            .width(min: 110, ideal: 150)
+            .width(min: 90, ideal: 120)
 
 
             // MARK: Class
@@ -561,7 +556,7 @@ struct OrdersView: View {
             TableColumn("Class") { row in
                 Text(row.studentOrder.schoolClass?.name ?? "—")
             }
-            .width(min: 50, ideal: 65)
+            .width(min: 50, ideal: 50)
 
 
             // MARK: Items
@@ -574,7 +569,7 @@ struct OrdersView: View {
                 )
                 .lineLimit(1)
             }
-            .width(min: 180, ideal: 300)
+            .width(min: 150, ideal: 280)
 
 
             // MARK: Notes
@@ -589,7 +584,7 @@ struct OrdersView: View {
                 Text(allNotes.isEmpty ? (row.notes ?? "") : allNotes)
                     .lineLimit(1)
             }
-            .width(min: 140, ideal: 240)
+            .width(min: 110, ideal: 200)
 
 
             // MARK: School
@@ -676,33 +671,59 @@ private struct OrderDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
 
-            HStack {
-                OrderRowView(row: row)
-
-                if row.status == .cancelled {
-                    Text("CANCELLED • REFUNDED")
-                        .font(.caption.bold())
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(
-                            Color.red,
-                            in: Capsule()
-                        )
-                }
+            if row.status == .cancelled {
+                Text("CANCELLED • REFUNDED")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        Color.red,
+                        in: Capsule()
+                    )
             }
 
-            Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 10) {
-                DetailRow(
-                    title: "Student",
-                    value: row.studentOrder.student.fullName.isEmpty ? "Not specified" : row.studentOrder.student.fullName
-                )
-                DetailRow(title: "School", value: row.school.name.isEmpty ? "Not specified" : row.school.name)
-                DetailRow(title: "Class", value: row.studentOrder.schoolClass?.name ?? "Not specified")
-                DetailRow(
-                    title: "Order Number",
-                    value: formattedOrderNumber(row.orderNumber)
-                )
+            HStack(spacing: 24) {
+                HStack(spacing: 5) {
+                    Text("Student:")
+                        .foregroundStyle(.secondary)
+                    Text(
+                        row.studentOrder.student.fullName.isEmpty
+                            ? "Not specified"
+                            : row.studentOrder.student.fullName
+                    )
+                    .fontWeight(.medium)
+                }
+
+                HStack(spacing: 5) {
+                    Text("School:")
+                        .foregroundStyle(.secondary)
+                    Text(
+                        row.school.name.isEmpty
+                            ? "Not specified"
+                            : row.school.name
+                    )
+                    .fontWeight(.medium)
+                }
+
+                HStack(spacing: 5) {
+                    Text("Class:")
+                        .foregroundStyle(.secondary)
+                    Text(
+                        row.studentOrder.schoolClass?.name
+                            ?? "Not specified"
+                    )
+                    .fontWeight(.medium)
+                }
+
+                HStack(spacing: 5) {
+                    Text("Order No:")
+                        .foregroundStyle(.secondary)
+                    Text(formattedOrderNumber(row.orderNumber))
+                        .fontWeight(.medium)
+                }
+
+                Spacer()
             }
 
             VStack(alignment: .leading, spacing: 8) {

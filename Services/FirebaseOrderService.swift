@@ -76,6 +76,9 @@ final class FirebaseOrderService {
 
             let parentId = data["parentId"] as? String
             let parentEmail = data["parentEmail"] as? String
+            
+            let total =
+                (data["total"] as? NSNumber)?.doubleValue ?? 0
 
             let foodAllergies = (
                 data["foodAllergies"] as? String ?? ""
@@ -257,6 +260,7 @@ final class FirebaseOrderService {
                 orderDate: orderDate,
                 deliveryDate: deliveryDate,
                 status: lunchOrderStatus,
+                total: total,
                 notes: notes
             )
             

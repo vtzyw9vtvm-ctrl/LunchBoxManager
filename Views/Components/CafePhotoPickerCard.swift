@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-struct PhotoPickerCard: View {
+struct CafePhotoPickerCard: View {
 
     @Binding var imageName: String
     @Binding var imageURL: String
@@ -9,13 +9,14 @@ struct PhotoPickerCard: View {
     @State private var isUploading = false
     @State private var uploadError: String?
 
-    private let firebaseImageService = FirebaseImageService()
+    private let firebaseImageService = CafeFirebaseImageService()
 
     var body: some View {
 
         VStack(spacing: 16) {
 
             Group {
+
                 if let image = ImageStorage.shared.loadImage(named: imageName) {
 
                     // Use local image when available
@@ -27,15 +28,18 @@ struct PhotoPickerCard: View {
                           let url = URL(string: imageURL) {
 
                     AsyncImage(url: url) { phase in
+
                         switch phase {
 
                         case .empty:
+
                             ZStack {
                                 Color.gray.opacity(0.12)
                                 ProgressView()
                             }
 
                         case .success(let image):
+
                             image
                                 .resizable()
                                 .scaledToFit()
@@ -48,7 +52,7 @@ struct PhotoPickerCard: View {
                                             )
                                     } catch {
                                         print(
-                                            "❌ IMAGE CACHE FAILED:",
+                                            "❌ CAFE IMAGE CACHE FAILED:",
                                             imageName,
                                             error.localizedDescription
                                         )
@@ -56,12 +60,16 @@ struct PhotoPickerCard: View {
                                 }
 
                         case .failure:
+
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(Color.gray.opacity(0.12))
                                 .overlay {
                                     VStack(spacing: 12) {
-                                        Image(systemName: "exclamationmark.triangle")
-                                            .font(.system(size: 36))
+                                        Image(
+                                            systemName:
+                                                "exclamationmark.triangle"
+                                        )
+                                        .font(.system(size: 36))
 
                                         Text("Photo couldn't be loaded")
                                             .foregroundStyle(.secondary)
@@ -81,6 +89,7 @@ struct PhotoPickerCard: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "photo")
                                     .font(.system(size: 42))
+
                                 Text("No Photo Selected")
                                     .foregroundStyle(.secondary)
                             }
@@ -98,26 +107,34 @@ struct PhotoPickerCard: View {
                         return
                     }
 
-                    imageName = filename
-                    imageURL = ""
                     uploadError = nil
                     isUploading = true
 
                     Task {
-
                         do {
-
                             let url = try await firebaseImageService
                                 .uploadMenuImage(filename: filename)
 
                             await MainActor.run {
+                                imageName = filename
                                 imageURL = url
                                 isUploading = false
 
-                                print("🔥 IMAGE URL BINDING SET TO:", imageURL)
+                                print(
+                                    "☕️ CAFE IMAGE NAME SET TO:",
+                                    imageName
+                                )
+
+                                print(
+                                    "☕️ CAFE IMAGE URL BINDING SET TO:",
+                                    imageURL
+                                )
                             }
 
-                            print("🔥 MENU IMAGE UPLOADED:", url)
+                            print(
+                                "☕️ CAFE MENU IMAGE UPLOADED:",
+                                url
+                            )
 
                         } catch {
 
@@ -127,7 +144,7 @@ struct PhotoPickerCard: View {
                             }
 
                             print(
-                                "🔥 MENU IMAGE UPLOAD FAILED:",
+                                "❌ CAFE MENU IMAGE UPLOAD FAILED:",
                                 error.localizedDescription
                             )
                         }
@@ -159,7 +176,6 @@ struct PhotoPickerCard: View {
                 Spacer()
 
                 if isUploading {
-
                     ProgressView()
                         .controlSize(.small)
                 }
@@ -180,7 +196,7 @@ struct PhotoPickerCard: View {
     @Previewable @State var imageName = ""
     @Previewable @State var imageURL = ""
 
-    PhotoPickerCard(
+    CafePhotoPickerCard(
         imageName: $imageName,
         imageURL: $imageURL
     )

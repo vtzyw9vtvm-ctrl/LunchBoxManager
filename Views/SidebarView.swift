@@ -13,6 +13,8 @@ struct SidebarView: View {
         case schoolOrders
         case contactUs
         case cafe
+        case cafeMenu
+        case cafeModifiers
         case inventory
         case reports
         case users
@@ -46,42 +48,7 @@ struct SidebarView: View {
         
         VStack(spacing: 0) {
             
-            // MARK: - Espresso Cafe Header
             
-            HStack(spacing: 18) {
-                
-                Image("espressologo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 48)
-                
-                Text("LUNCHBOX MANAGER")
-                    .font(
-                        .system(
-                            size: 30,
-                            weight: .bold
-                        )
-                    )
-                    .foregroundStyle(Color.lunchBoxNavy)
-                
-                Spacer()
-                
-            }
-            .padding(.horizontal, 22)
-            .padding(.vertical, 10)
-            .frame(
-                maxWidth: .infinity,
-                alignment: .leading
-            )
-            .background(
-                Color(
-                    red: 0.97,
-                    green: 0.95,
-                    blue: 0.92
-                )
-            )
-            
-            Divider()
             
             NavigationSplitView {
                 
@@ -157,11 +124,23 @@ struct SidebarView: View {
                         .tag(Destination.contactUs)
                         
                         Label(
-                            "Cafe",
+                            "Cafe Orders",
                             systemImage: "cup.and.saucer"
                         )
                         .tag(Destination.cafe)
-                        
+
+                        Label(
+                            "Cafe Menu",
+                            systemImage: "fork.knife"
+                        )
+                        .tag(Destination.cafeMenu)
+
+                        Label(
+                            "Cafe Modifier Groups",
+                            systemImage: "slider.horizontal.3"
+                        )
+                        .tag(Destination.cafeModifiers)
+
                         Label(
                             "Inventory",
                             systemImage: "shippingbox"
@@ -246,11 +225,15 @@ struct SidebarView: View {
                     ContactUsView()
                     
                 case .cafe:
-                    
-                    Text("Cafe")
-                    
+                    CafeOrdersView()
+
+                case .cafeMenu:
+                    CafeMenuWorkspaceView()
+
+                case .cafeModifiers:
+                    CafeModifierWorkspaceView()
+
                 case .inventory:
-                    
                     Text("Inventory")
                     
                 case .reports:

@@ -9,7 +9,39 @@ struct School_Lunch_ManagerApp: App {
     @StateObject private var authManager: ManagerAuthManager
 
     init() {
+
         FirebaseApp.configure()
+
+        // Configure the separate Espresso Cafe Firebase project
+        if FirebaseApp.app(name: "EspressoCafe") == nil {
+
+            if let optionsPath = Bundle.main.path(
+                forResource: "GoogleService-Info-Espresso",
+                ofType: "plist"
+            ),
+            let options = FirebaseOptions(
+                contentsOfFile: optionsPath
+            ) {
+                FirebaseApp.configure(
+                    name: "EspressoCafe",
+                    options: options
+                )
+
+                print(
+                    "☕️ EspressoCafe Firebase CONFIGURED at startup"
+                )
+            } else {
+                print(
+                    "❌ Could not load GoogleService-Info-Espresso.plist"
+                )
+            }
+
+        } else {
+
+            print(
+                "☕️ EspressoCafe Firebase was ALREADY configured at startup"
+            )
+        }
 
         _authManager = StateObject(
             wrappedValue: ManagerAuthManager()
@@ -25,6 +57,9 @@ struct School_Lunch_ManagerApp: App {
             Group {
                 if authManager.isSignedIn {
                     SidebarView()
+                        .task {
+                            CafeOrderAlertService.shared.start()
+                        }
                 } else {
                     ManagerSignInView()
                 }

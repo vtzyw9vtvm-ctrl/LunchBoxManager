@@ -270,7 +270,8 @@ struct ModifierWorkspaceView: View {
                     
                 }
                 .frame(
-                    minWidth: 520,
+                    minWidth: 180,
+                    idealWidth: 400,
                     maxWidth: .infinity
                 )
                 

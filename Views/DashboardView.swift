@@ -9,12 +9,47 @@ struct DashboardView: View {
     
     // MARK: - Today's Orders
     
-    private var todaysOrders: [LunchOrder] {
-        
+    // MARK: - Active Lunch Day
+
+    private var activeLunchDate: Date {
         let calendar = Calendar.current
-        
+        let now = Date()
+
+        // Before 2pm = today's lunch day
+        if calendar.component(.hour, from: now) < 14 {
+            return calendar.startOfDay(for: now)
+        }
+
+        // From 2pm onward = next weekday
+        var candidate = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: now)
+        )!
+
+        while calendar.isDateInWeekend(candidate) {
+            candidate = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: candidate
+            )!
+        }
+
+        return candidate
+    }
+
+
+    // MARK: - Active Lunch Orders
+
+    private var todaysOrders: [LunchOrder] {
+        let calendar = Calendar.current
+
         return orders.filter {
-            calendar.isDateInToday($0.deliveryDate)
+            calendar.isDate(
+                $0.deliveryDate,
+                inSameDayAs: activeLunchDate
+            )
+            && $0.status != .cancelled
         }
     }
     
@@ -32,6 +67,21 @@ struct DashboardView: View {
         }
     }
     
+    // MARK: - School Lunch Sales
+
+    private var schoolLunchSales: Decimal {
+        todaysOrders.reduce(Decimal.zero) { total, order in
+            total + Decimal(order.total)
+        }
+    }
+    
+    private var cafeSales: Decimal {
+        0
+    }
+
+    private var totalSales: Decimal {
+        schoolLunchSales + cafeSales
+    }
     
     // MARK: - Hot Labels Remaining
     
@@ -122,7 +172,7 @@ struct DashboardView: View {
             
             PageBannerView(
                 title: "Dashboard",
-                subtitle: Date.now.formatted(
+                subtitle: activeLunchDate.formatted(
                     .dateTime
                         .weekday(.wide)
                         .day()
@@ -132,6 +182,7 @@ struct DashboardView: View {
                 systemImage: "house.fill",
                 color: .lunchBoxNavy
             )
+            
             
             ScrollView {
                 
@@ -152,29 +203,33 @@ struct DashboardView: View {
                     // MARK: Today's Overview
                     
                     HStack(spacing: 16) {
-                        
+
                         DashboardCard(
                             title: "Parent Orders",
                             value: totalOrders,
-                            systemImage: "cart"
+                            systemImage: "cart",
+                            color: .blue
                         )
-                        
+
                         DashboardCard(
                             title: "Student Lunches",
                             value: totalLunches,
-                            systemImage: "fork.knife"
+                            systemImage: "fork.knife",
+                            color: .green
                         )
-                        
+
                         DashboardCard(
                             title: "Hot Labels Remaining",
                             value: hotLabelsRemaining,
-                            systemImage: "flame.fill"
+                            systemImage: "flame.fill",
+                            color: .orange
                         )
-                        
+
                         DashboardCard(
                             title: "Cold Labels Remaining",
                             value: coldLabelsRemaining,
-                            systemImage: "snowflake"
+                            systemImage: "snowflake",
+                            color: .cyan
                         )
                     }
                     
@@ -231,20 +286,23 @@ struct DashboardView: View {
                             
                             SalesCard(
                                 title: "School Lunch Sales",
-                                amount: 0,
-                                systemImage: "graduationcap"
+                                amount: schoolLunchSales,
+                                systemImage: "graduationcap",
+                                color: .green
                             )
-                            
+
                             SalesCard(
                                 title: "Cafe Sales",
-                                amount: 0,
-                                systemImage: "cup.and.saucer"
+                                amount: cafeSales,
+                                systemImage: "cup.and.saucer",
+                                color: .orange
                             )
-                            
+
                             SalesCard(
                                 title: "Total Sales",
-                                amount: 0,
-                                systemImage: "dollarsign.circle"
+                                amount: totalSales,
+                                systemImage: "dollarsign.circle",
+                                color: .blue
                             )
                         }
                     }
@@ -259,10 +317,10 @@ struct DashboardView: View {
     // MARK: - Dashboard Card
     
     private struct DashboardCard: View {
-        
         let title: String
         let value: Int
         let systemImage: String
+        let color: Color
         
         var body: some View {
             
@@ -273,7 +331,7 @@ struct DashboardView: View {
                 
                 Image(systemName: systemImage)
                     .font(.title2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(color)
                 
                 Text(value, format: .number)
                     .font(
@@ -293,11 +351,15 @@ struct DashboardView: View {
             )
             .padding(20)
             .background(
-                .background.secondary,
+                color.opacity(0.12),
                 in: RoundedRectangle(
                     cornerRadius: 12
                 )
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(color.opacity(0.25), lineWidth: 1)
+            }
         }
     }
     
@@ -319,6 +381,17 @@ struct DashboardView: View {
     private struct SchoolSummaryCard: View {
         
         let summary: DashboardSchoolSummary
+        
+        private var cardColor: Color {
+            switch summary.shortName.uppercased() {
+            case "BPS":
+                return .purple
+            case "CTP":
+                return .teal
+            default:
+                return .blue
+            }
+        }
         
         var body: some View {
             
@@ -353,7 +426,7 @@ struct DashboardView: View {
                     
                     Image(systemName: "building.2")
                         .font(.title2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(cardColor)
                 }
                 
                 Divider()
@@ -391,21 +464,25 @@ struct DashboardView: View {
             )
             .padding(20)
             .background(
-                .background.secondary,
+                cardColor.opacity(0.10),
                 in: RoundedRectangle(
                     cornerRadius: 12
                 )
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(cardColor.opacity(0.22), lineWidth: 1)
+            }
         }
     }
     
     // MARK: - Sales Card
     
     private struct SalesCard: View {
-        
         let title: String
         let amount: Decimal
         let systemImage: String
+        let color: Color
         
         var body: some View {
             
@@ -416,7 +493,7 @@ struct DashboardView: View {
                 
                 Image(systemName: systemImage)
                     .font(.title2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(color)
                 
                 Text(
                     amount,
@@ -439,11 +516,15 @@ struct DashboardView: View {
             )
             .padding(20)
             .background(
-                .background.secondary,
+                color.opacity(0.10),
                 in: RoundedRectangle(
                     cornerRadius: 12
                 )
             )
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(color.opacity(0.22), lineWidth: 1)
+            }
         }
     }
 }

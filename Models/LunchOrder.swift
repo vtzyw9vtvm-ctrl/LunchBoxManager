@@ -33,6 +33,9 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
     /// Current processing state of the order.
     var status: LunchOrderStatus
 
+    /// Total amount paid for this parent order.
+    var total: Double
+    
     var notes: String?
 
     init(
@@ -46,6 +49,7 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
         orderDate: Date,
         deliveryDate: Date? = nil,
         status: LunchOrderStatus = .new,
+        total: Double = 0,
         notes: String? = nil
     ) {
         self.id = id
@@ -61,6 +65,7 @@ struct LunchOrder: Identifiable, Codable, Hashable, Sendable {
         // from the old system.
         self.deliveryDate = deliveryDate ?? orderDate
         self.status = status
+        self.total = total
         self.notes = notes
     }
 }
