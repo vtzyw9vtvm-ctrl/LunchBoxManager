@@ -11,8 +11,6 @@ final class CafeOrderAlertService {
     private var listener: ListenerRegistration?
     private var alertTimer: Timer?
 
-    // Keep one synthesizer alive for the lifetime of the service.
-    private let speechSynthesizer = AVSpeechSynthesizer()
 
     private var hasLoadedInitialOrders = false
     private var knownOrderIDs: Set<String> = []
@@ -177,27 +175,9 @@ final class CafeOrderAlertService {
     private func stopRepeatingAlert() {
         alertTimer?.invalidate()
         alertTimer = nil
-
-        speechSynthesizer.stopSpeaking(
-            at: .immediate
-        )
     }
 
     private func playNewOrderAlert() {
-        let utterance = AVSpeechUtterance(
-            string: "Hey everyone, there's a new online order!"
-        )
-
-        utterance.rate = 0.45
-        utterance.volume = 1.0
-
-        // British Rocko voice.
-        utterance.voice = AVSpeechSynthesisVoice(
-            identifier: "com.apple.eloquence.en-GB.Reed"
-        )
-
-        speechSynthesizer.speak(
-            utterance
-        )
+        NSSound(named: "Glass")?.play()
     }
 }

@@ -363,6 +363,7 @@ struct CafeOrder: Identifiable {
     let customerEmail: String
     let placedAt: Date
     let fulfilmentType: String
+    let orderNotes: String
 
     let deliveryAddress: String
     let deliveryLatitude: Double
@@ -394,6 +395,10 @@ struct CafeOrder: Identifiable {
         fulfilmentType =
             data["fulfilmentType"] as? String
             ?? "pickup"
+
+        orderNotes =
+            data["orderNotes"] as? String
+            ?? ""
 
         deliveryAddress =
             data["deliveryAddress"] as? String
@@ -693,7 +698,38 @@ private struct CafeOrderCard: View {
                     }
                 }
             }
+            let trimmedOrderNotes =
+                order.orderNotes.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
 
+            if !trimmedOrderNotes.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 7) {
+                        Image(systemName: "note.text")
+                            .foregroundStyle(.orange)
+
+                        Text("ORDER NOTES")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(.orange)
+                    }
+
+                    Text(trimmedOrderNotes)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.primary)
+                }
+                .padding(12)
+                .frame(
+                    maxWidth: .infinity,
+                    alignment: .leading
+                )
+                .background(
+                    Color.orange.opacity(0.10)
+                )
+                .clipShape(
+                    RoundedRectangle(cornerRadius: 8)
+                )
+            }
             Divider()
             
             if order.paymentProvider.lowercased() == "cash" &&
@@ -1069,7 +1105,38 @@ private struct CafeOrderDetailView: View {
                             }
                         }
                     }
+                    let trimmedOrderNotes =
+                        order.orderNotes.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        )
 
+                    if !trimmedOrderNotes.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "note.text")
+                                    .foregroundStyle(.orange)
+
+                                Text("ORDER NOTES")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundStyle(.orange)
+                            }
+
+                            Text(trimmedOrderNotes)
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .padding(14)
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: .leading
+                        )
+                        .background(
+                            Color.orange.opacity(0.10)
+                        )
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: 8)
+                        )
+                    }
+                    
                     Divider()
                     
                     if order.paymentProvider.lowercased() == "cash" {
@@ -1267,6 +1334,17 @@ private struct CafeReceiptFormatter {
             lines.append("")
         }
 
+        let orderNotes =
+            order.orderNotes.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+        if !orderNotes.isEmpty {
+            lines.append("ORDER NOTES:")
+            lines.append(orderNotes)
+            lines.append("")
+        }
+        
         lines.append(separator)
         lines.append("")
 
