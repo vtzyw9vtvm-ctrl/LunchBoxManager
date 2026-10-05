@@ -18,6 +18,7 @@ struct MenuWorkspaceView: View {
     @State private var categoryPendingDeletion: LunchCategory?
     @State private var showDeleteItemConfirmation = false
     @State private var itemPendingDeletion: LunchMenuItem?
+    @State private var firebaseLoadError: String?
     
     
     var body: some View {
@@ -512,8 +513,13 @@ struct MenuWorkspaceView: View {
         
         .task {
             do {
-                let firebaseCategories = try await firebaseMenuService.loadMenu()
-                let firebaseModifierGroups = try await firebaseMenuService.loadModifierGroups()
+                firebaseLoadError = nil
+
+                let firebaseCategories =
+                    try await firebaseMenuService.loadMenu()
+
+                let firebaseModifierGroups =
+                    try await firebaseMenuService.loadModifierGroups()
 
                 if !firebaseCategories.isEmpty {
                     menuManager.restoreMenu(firebaseCategories)
@@ -526,7 +532,8 @@ struct MenuWorkspaceView: View {
                 selectedCategory = menuManager.categories.first
 
                 if let firstCategory = selectedCategory {
-                    selectedItemID = menuManager.items(for: firstCategory).first?.id
+                    selectedItemID =
+                        menuManager.items(for: firstCategory).first?.id
                 }
 
                 print("🔥 MENU LOADED FROM FIREBASE")
@@ -534,15 +541,39 @@ struct MenuWorkspaceView: View {
                 print("🔥 Items:", menuManager.totalMenuItems)
 
             } catch {
-                print("❌ FIREBASE MENU LOAD FAILED:", error.localizedDescription)
+                let message = error.localizedDescription
 
-                // Fall back to the locally saved menu if Firebase is unavailable.
+                firebaseLoadError = message
+
+                print(
+                    "❌ FIREBASE MENU LOAD FAILED:",
+                    message
+                )
+
                 selectedCategory = menuManager.categories.first
 
                 if let firstCategory = selectedCategory {
-                    selectedItemID = menuManager.items(for: firstCategory).first?.id
+                    selectedItemID =
+                        menuManager.items(for: firstCategory).first?.id
                 }
             }
+        }
+        .alert(
+            "Cafe Firebase Error",
+            isPresented: Binding(
+                get: { firebaseLoadError != nil },
+                set: { newValue in
+                    if !newValue {
+                        firebaseLoadError = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                firebaseLoadError = nil
+            }
+        } message: {
+            Text(firebaseLoadError ?? "Unknown error")
         }
         
         .onChange(of: selectedCategory) {

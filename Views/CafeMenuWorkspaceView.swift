@@ -653,7 +653,61 @@ struct CafeMenuWorkspaceView: View {
             )
         }
 
-        // MARK: - Initial Selection
+        // MARK: - Load Cafe Menu From Firebase
+
+        .task {
+            do {
+                let firebaseCategories =
+                    try await firebaseMenuService.loadMenu()
+
+                let firebaseModifierGroups =
+                    try await firebaseMenuService.loadModifierGroups()
+
+                if !firebaseCategories.isEmpty {
+                    menuManager.restoreMenu(
+                        firebaseCategories
+                    )
+                }
+
+                if !firebaseModifierGroups.isEmpty {
+                    modifierManager.groups =
+                        firebaseModifierGroups
+                }
+
+                selectedCategory =
+                    menuManager.categories.first
+
+                if let firstCategory =
+                    selectedCategory {
+
+                    selectedItemID =
+                        menuManager
+                            .items(
+                                for: firstCategory
+                            )
+                            .first?
+                            .id
+                }
+
+                print(
+                    "🔥 CAFE FIREBASE LOAD SUCCESS"
+                )
+
+            } catch {
+
+                publishMessage =
+                    """
+                    Firebase cafe menu load failed:
+
+                    \(error.localizedDescription)
+                    """
+
+                print(
+                    "❌ FIREBASE MENU LOAD FAILED:",
+                    error.localizedDescription
+                )
+            }
+        }
 
         // MARK: - Initial Selection
 
