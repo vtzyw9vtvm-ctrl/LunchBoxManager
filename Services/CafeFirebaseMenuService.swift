@@ -199,13 +199,40 @@ final class CafeFirebaseMenuService {
             )
         }
 
+        let masterModifierGroupsData: [[String: Any]] =
+            modifierGroups.enumerated().map { index, group in
+
+                let modifiersData: [[String: Any]] =
+                    group.modifiers.enumerated().map { modifierIndex, modifier in
+
+                        [
+                            "id": modifier.id.uuidString,
+                            "sortOrder": modifierIndex,
+                            "name": modifier.name,
+                            "price": modifier.price,
+                            "isDefault": modifier.isDefault,
+                            "isAvailable": modifier.isAvailable
+                        ]
+                    }
+
+                return [
+                    "id": group.id.uuidString,
+                    "sortOrder": index,
+                    "name": group.name,
+                    "customerName": group.customerName,
+                    "minimumSelections": group.minimumSelections,
+                    "maximumSelections": group.maximumSelections,
+                    "useRadioButtons": group.useRadioButtons,
+                    "allowQuantities": group.allowQuantities,
+                    "modifiers": modifiersData
+                ]
+            }
+
         let data: [String: Any] = [
-            "categories":
-                categoryData,
-            "updatedAt":
-                FieldValue.serverTimestamp(),
-            "version":
-                1
+            "categories": categoryData,
+            "modifierGroups": masterModifierGroupsData,
+            "updatedAt": FieldValue.serverTimestamp(),
+            "version": 2
         ]
 
         try await menuDocument.setData(
@@ -479,6 +506,104 @@ final class CafeFirebaseMenuService {
     func loadModifierGroups()
         async throws -> [ModifierGroup]
     {
+        
+        func decodeModifierGroup(
+            _ groupData: [String: Any]
+        ) -> (group: ModifierGroup, sortOrder: Int)? {
+
+            guard
+                let idString = groupData["id"] as? String,
+                let groupID = UUID(uuidString: idString)
+            else {
+                return nil
+            }
+
+            let firebaseModifiers =
+                groupData["modifiers"] as? [[String: Any]]
+                ?? []
+
+            let modifiers: [(modifier: Modifier, sortOrder: Int)] =
+                firebaseModifiers.compactMap { modifierData in
+
+                    guard
+                        let idString =
+                            modifierData["id"] as? String,
+                        let modifierID =
+                            UUID(uuidString: idString)
+                    else {
+                        return nil
+                    }
+
+                    let modifier = Modifier(
+                        id: modifierID,
+                        name:
+                            modifierData["name"] as? String
+                            ?? "",
+                        price:
+                            (
+                                modifierData["price"]
+                                    as? NSNumber
+                            )?.doubleValue
+                            ?? 0,
+                        isDefault:
+                            modifierData["isDefault"] as? Bool
+                            ?? false,
+                        isAvailable:
+                            modifierData["isAvailable"] as? Bool
+                            ?? true
+                    )
+
+                    return (
+                        modifier,
+                        modifierData["sortOrder"] as? Int
+                            ?? 0
+                    )
+                }
+
+            let sortedModifiers =
+                modifiers
+                    .sorted {
+                        $0.sortOrder < $1.sortOrder
+                    }
+                    .map {
+                        $0.modifier
+                    }
+
+            let group = ModifierGroup(
+                id: groupID,
+                name:
+                    groupData["name"] as? String
+                    ?? "Modifier Group",
+                customerName:
+                    groupData["customerName"] as? String
+                    ?? groupData["name"] as? String
+                    ?? "Modifier Group",
+                minimumSelections:
+                    (
+                        groupData["minimumSelections"]
+                            as? NSNumber
+                    )?.intValue
+                    ?? 0,
+                maximumSelections:
+                    (
+                        groupData["maximumSelections"]
+                            as? NSNumber
+                    )?.intValue
+                    ?? 99,
+                useRadioButtons:
+                    groupData["useRadioButtons"] as? Bool
+                    ?? false,
+                allowQuantities:
+                    groupData["allowQuantities"] as? Bool
+                    ?? false,
+                modifiers: sortedModifiers
+            )
+
+            return (
+                group,
+                groupData["sortOrder"] as? Int ?? 0
+            )
+        }
 
         let document =
             try await db
@@ -486,11 +611,37 @@ final class CafeFirebaseMenuService {
                 .document("current")
                 .getDocument()
 
+        guard let data = document.data() else {
+            return []
+        }
+
+        // Prefer the new master modifier-group list.
+        // Older Firebase data will fall back to the
+        // modifier groups embedded inside menu items.
+        if let masterGroups =
+            data["modifierGroups"] as? [[String: Any]],
+           !masterGroups.isEmpty {
+
+            let decodedGroups =
+                masterGroups
+                    .compactMap {
+                        decodeModifierGroup($0)
+                    }
+                    .sorted {
+                        $0.sortOrder < $1.sortOrder
+                    }
+                    .map {
+                        $0.group
+                    }
+
+            if !decodedGroups.isEmpty {
+                return decodedGroups
+            }
+        }
+
         guard
-            let data = document.data(),
             let firebaseCategories =
-                data["categories"]
-                    as? [[String: Any]]
+                data["categories"] as? [[String: Any]]
         else {
             return []
         }
@@ -665,5 +816,57 @@ final class CafeFirebaseMenuService {
                 )
                 == .orderedAscending
         }
+    }
+    // MARK: - Save Cafe Modifier Groups
+
+    func saveModifierGroups(
+        _ modifierGroups: [ModifierGroup]
+    ) async throws {
+
+        let modifierGroupsData: [[String: Any]] =
+            modifierGroups.enumerated().map { index, group in
+
+                let modifiersData: [[String: Any]] =
+                    group.modifiers.enumerated().map {
+                        modifierIndex,
+                        modifier in
+
+                        [
+                            "id": modifier.id.uuidString,
+                            "sortOrder": modifierIndex,
+                            "name": modifier.name,
+                            "price": modifier.price,
+                            "isDefault": modifier.isDefault,
+                            "isAvailable": modifier.isAvailable
+                        ]
+                    }
+
+                return [
+                    "id": group.id.uuidString,
+                    "sortOrder": index,
+                    "name": group.name,
+                    "customerName": group.customerName,
+                    "minimumSelections": group.minimumSelections,
+                    "maximumSelections": group.maximumSelections,
+                    "useRadioButtons": group.useRadioButtons,
+                    "allowQuantities": group.allowQuantities,
+                    "modifiers": modifiersData
+                ]
+            }
+
+        try await db
+            .collection("cafe_menu")
+            .document("current")
+            .setData(
+                [
+                    "modifierGroups": modifierGroupsData,
+                    "updatedAt": FieldValue.serverTimestamp()
+                ],
+                merge: true
+            )
+
+        print(
+            "☕️ CAFE MODIFIER GROUPS SAVED TO ESPRESSO FIREBASE"
+        )
     }
 }

@@ -12,7 +12,8 @@ struct SchoolInspector: View {
         "Grade 4",
         "Grade 5",
         "Grade 6",
-        "Grade 5/6"
+        "Grade 5/6",
+        "Staff"
     ]
 
     private let weekdays = [

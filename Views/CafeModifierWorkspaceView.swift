@@ -3,6 +3,9 @@ import SwiftUI
 struct CafeModifierWorkspaceView: View {
 
     @State private var manager = CafeModifierManager()
+    
+    private let firebaseMenuService = CafeFirebaseMenuService()
+    @State private var modifierSaveTask: Task<Void, Never>?
 
     @State private var selectedGroupID: UUID?
     @State private var selectedModifierID: UUID?
@@ -76,6 +79,7 @@ struct CafeModifierWorkspaceView: View {
 
                                 Button {
                                     manager.moveGroupUp(group)
+                                    saveModifierGroupsToFirebase()
                                 } label: {
                                     Image(systemName: "chevron.up")
                                 }
@@ -87,6 +91,7 @@ struct CafeModifierWorkspaceView: View {
 
                                 Button {
                                     manager.moveGroupDown(group)
+                                    saveModifierGroupsToFirebase()
                                 } label: {
                                     Image(systemName: "chevron.down")
                                 }
@@ -187,6 +192,7 @@ struct CafeModifierWorkspaceView: View {
 
                         selectedModifierID =
                             modifier.id
+                        saveModifierGroupsToFirebase()
                     }
 
                     Divider()
@@ -231,6 +237,8 @@ struct CafeModifierWorkspaceView: View {
                                                     modifier,
                                                     in: group
                                                 )
+
+                                                saveModifierGroupsToFirebase()
                                             } label: {
                                                 Image(
                                                     systemName: "chevron.up"
@@ -248,6 +256,8 @@ struct CafeModifierWorkspaceView: View {
                                                     modifier,
                                                     in: group
                                                 )
+
+                                                saveModifierGroupsToFirebase()
                                             } label: {
                                                 Image(
                                                     systemName: "chevron.down"
@@ -433,6 +443,8 @@ struct CafeModifierWorkspaceView: View {
                                                     in:
                                                         currentGroup
                                                 )
+
+                                            saveModifierGroupsToFirebase()
                                         }
                                     )
                                 )
@@ -466,7 +478,28 @@ struct CafeModifierWorkspaceView: View {
         .navigationTitle(
             "Cafe Modifier Groups"
         )
+        .task {
+            do {
+                let firebaseModifierGroups =
+                    try await firebaseMenuService.loadModifierGroups()
 
+                if !firebaseModifierGroups.isEmpty {
+                    manager.groups = firebaseModifierGroups
+
+                    if let firstGroup = firebaseModifierGroups.first {
+                        selectedGroupID = firstGroup.id
+                        selectedModifierID =
+                            firstGroup.modifiers.first?.id
+                    }
+                }
+
+            } catch {
+                print(
+                    "❌ Failed to load cafe modifier groups:",
+                    error
+                )
+            }
+        }
         .onAppear {
 
             guard selectedGroupID == nil
@@ -507,7 +540,50 @@ struct CafeModifierWorkspaceView: View {
                 group.modifiers.first?.id
         }
     }
+    // MARK: - Save Modifier Groups
 
+    private func saveModifierGroupsToFirebase() {
+
+        modifierSaveTask?.cancel()
+
+        modifierSaveTask = Task {
+
+            do {
+                // Wait briefly so several quick edits/reorders
+                // become one final Firebase save.
+                try await Task.sleep(
+                    for: .milliseconds(400)
+                )
+
+                guard !Task.isCancelled else {
+                    return
+                }
+
+                let groupsToSave = manager.groups
+
+                try await firebaseMenuService
+                    .saveModifierGroups(groupsToSave)
+
+                guard !Task.isCancelled else {
+                    return
+                }
+
+                print(
+                    "☕️ Modifier groups saved to Firebase"
+                )
+
+            } catch is CancellationError {
+                // A newer change replaced this save.
+
+            } catch {
+                print(
+                    "❌ Failed to save modifier groups to Firebase:",
+                    error
+                )
+            }
+        }
+    }
+    
     // MARK: - Toolbar
 
     @ViewBuilder
